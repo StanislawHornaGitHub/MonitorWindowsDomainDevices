@@ -32,3 +32,18 @@ function Get-ComputerListToProcess {
     }
     return $Result
 }
+function Export-ObjectTable {
+<#
+    .DESCRIPTION
+    Function to Export result object table
+
+#>    
+    param(
+        $OutputTable,
+        $Result
+    )
+    if ($(Test-Path -Path $OutputTable)) {
+        Remove-Item -Path $OutputTable -Force -Confirm:$false | Out-Null
+    }
+    $Result | Export-Csv -Path $OutputTable -NoTypeInformation
+}

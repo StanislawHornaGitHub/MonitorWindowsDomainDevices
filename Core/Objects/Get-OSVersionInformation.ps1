@@ -15,7 +15,7 @@ function Invoke-Main {
     $Computer = Get-ComputerListToProcess
     $Result = New-Object System.Collections.ArrayList
     Get-WindowsVersion
-    Export-Table
+    Export-ObjectTable -OutputTable $OS_VERSION_TABLE -Result $Result
 }
 
 
@@ -34,7 +34,7 @@ function Get-WindowsVersion {
         try {
             $OS = Get-WmiObject -Class $OS_CLASS -ComputerName $($C.DNSHostName) -Credential $Credentials -ErrorAction Stop
             $success = $true
-        }
+        } # Exception if current iteration is running on server responsible for monitoring itself
         catch [System.Management.ManagementException] {
             try {
                 $OS = Get-WmiObject -Class $OS_CLASS -ComputerName $($C.DNSHostName) -ErrorAction Stop
@@ -60,14 +60,14 @@ function Get-WindowsVersion {
             $License = Get-WMIObject -Class $LICENSE_CLASS -ComputerName $($C.DNSHostName) -Credential $Credentials `
                 -Filter "Name like 'Windows%'" -ErrorAction Stop | `
                 Where-Object { $_.PartialProductKey }
-                $success = $true
-        }
+            $success = $true
+        } # Exception if current iteration is running on server responsible for monitoring itself
         catch [System.Management.ManagementException] {
             try {
                 $License = Get-WMIObject -Class $LICENSE_CLASS -ComputerName $($C.DNSHostName) `
                     -Filter "Name like 'Windows%'" -ErrorAction Stop | `
                     Where-Object { $_.PartialProductKey }
-                    $success = $true
+                $success = $true
             }
             catch {
                 $Entry.Error += $($_.exception.message)
@@ -78,17 +78,22 @@ function Get-WindowsVersion {
         }
         finally {
             if ($success) {
-                $Entry.'isLicenseActivated' = $License.LicenseStatus
+                # translate number to bool
+                $Entry.'isLicenseActivated' = [bool]$($License.LicenseStatus)
             }
         }
         $Result.Add($Entry) | Out-Null
     }
 }
 function Export-Table {
-    if ($(Test-Path -Path $OS_VERSION_TABLE)) {
-        Remove-Item -Path $OS_VERSION_TABLE -Force -Confirm:$false | Out-Null
+    param(
+        $OutputTable,
+        $Result
+    )
+    if ($(Test-Path -Path $OutputTable)) {
+        Remove-Item -Path $OutputTable -Force -Confirm:$false | Out-Null
     }
-    $Result | Export-Csv -Path $OS_VERSION_TABLE -NoTypeInformation
+    $Result | Export-Csv -Path $OutputTable -NoTypeInformation
 }
 
 Invoke-Main
