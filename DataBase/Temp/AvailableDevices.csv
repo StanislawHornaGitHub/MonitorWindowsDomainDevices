@@ -1,7 +1,0 @@
-"DNSHostName","IPaddress","isActive","Error","LastUpdate","LastSeen"
-"HORNAS-DC.Horna.local","192.168.0.14","True","","2023-08-10 12:14","2023-08-10 12:14"
-"Ryzen7.Horna.local","192.168.0.21","True","","2023-08-10 12:14","2023-08-10 12:14"
-"RDP-Client.Horna.local","192.168.0.25","True","","2023-08-10 12:14","2023-08-10 12:14"
-"Hyper-V-Server.Horna.local","192.168.0.202","True","","2023-08-10 12:14","2023-08-10 12:14"
-"Server-Core.Horna.local","192.168.0.202","True","","2023-08-10 12:14","2023-08-10 12:14"
-"Server-Automation.Horna.local","192.168.0.203","True","","2023-08-10 12:14","2023-08-10 12:14"

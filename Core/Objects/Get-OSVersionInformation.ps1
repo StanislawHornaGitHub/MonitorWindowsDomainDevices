@@ -15,7 +15,6 @@ function Invoke-Main {
     $Computer = Get-ComputerListToProcess
     $Result = New-Object System.Collections.ArrayList
     Get-WindowsVersion
-    $Result | fl
     Export-Table
 }
 
