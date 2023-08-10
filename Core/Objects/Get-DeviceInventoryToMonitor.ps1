@@ -44,7 +44,6 @@ function Get-ComputerIsActive {
     $LastUpdate = (Get-Date).ToString("yyyy-MM-dd HH:mm")
     foreach ($C in $Computer) {
         $Entry = [PSCustomObject]@{
-            'computerSID' = ""
             'DNSHostName' = ""
             'IPaddress'   = $null
             'isActive'    = $false
@@ -52,7 +51,6 @@ function Get-ComputerIsActive {
             'LastUpdate'  = $LastUpdate
             'LastSeen'    = ""
         }
-        $Entry.computerSID = $C.SID
         $Entry.DNSHostName = $C.DNSHostName
         
         try {
