@@ -1,34 +1,30 @@
-#TYPE System.Management.Automation.PSCustomObject
 "computerSID","DNSHostName","IPaddress","isActive","Error","LastUpdate","LastSeen"
-"S-1-5-21-4094502252-371443177-3481794996-1168","HORNAS-DC.Horna.local","192.168.0.14","True","","2023-08-09 18:31","2023-08-09 18:31"
-"S-1-5-21-4094502252-371443177-3481794996-1119","Windows10.Horna.local","TEST_IP_TO_CHECK","False","Windows10.Horna.local : Nazwa DNS nie istnieje
-","2023-08-09 18:31",""
+"S-1-5-21-4094502252-371443177-3481794996-1168","HORNAS-DC.Horna.local","192.168.0.14","True","","2023-08-10 08:55","2023-08-10 08:55"
+"S-1-5-21-4094502252-371443177-3481794996-1119","Windows10.Horna.local","","False","Windows10.Horna.local : Nazwa DNS nie istnieje
+","2023-08-10 08:55",""
 "S-1-5-21-4094502252-371443177-3481794996-1125","OPT.Horna.local","","False","OPT.Horna.local : Nazwa DNS nie istnieje
-","2023-08-09 18:31",""
-"S-1-5-21-4094502252-371443177-3481794996-1166","Ryzen7.Horna.local","192.168.0.21","True","","2023-08-09 18:31","2023-08-09 18:31"
+","2023-08-10 08:55",""
+"S-1-5-21-4094502252-371443177-3481794996-1166","Ryzen7.Horna.local","192.168.0.21","False","","2023-08-10 08:55","2023-08-09 20:55"
 "S-1-5-21-4094502252-371443177-3481794996-1153","Lian6700.Horna.local","","False","Lian6700.Horna.local : Nazwa DNS nie istnieje
-","2023-08-09 18:31","LONG_TIME_AGO"
-"S-1-5-21-4094502252-371443177-3481794996-1603","RDP-Client.Horna.local","","False","RDP-Client.Horna.local : Nazwa DNS nie istnieje
-","2023-08-09 18:31",""
+","2023-08-10 08:55",""
+"S-1-5-21-4094502252-371443177-3481794996-1603","RDP-Client.Horna.local","192.168.0.25","True","","2023-08-10 08:55","2023-08-10 08:55"
 "S-1-5-21-4094502252-371443177-3481794996-5104","HP-Ryzen-7.Horna.local","192.168.0.15","False","Request timed out.
-","2023-08-09 18:31",""
+","2023-08-10 08:55",""
 "S-1-5-21-4094502252-371443177-3481794996-5107","IBM-X3550M4.Horna.local","192.168.0.201","False","Request timed out.
-","2023-08-09 18:31",""
+","2023-08-10 08:55",""
 "S-1-5-21-4094502252-371443177-3481794996-5603","truenas-time.horna.local","","False","truenas-time.horna.local : Nazwa DNS nie istnieje
-","2023-08-09 18:31",""
+","2023-08-10 08:55",""
 "S-1-5-21-4094502252-371443177-3481794996-5613","Hornas-Azure.Horna.local","","False","Hornas-Azure.Horna.local : Nazwa DNS nie istnieje
-","2023-08-09 18:31",""
+","2023-08-10 08:55",""
 "S-1-5-21-4094502252-371443177-3481794996-5614","Hornas-2022.Horna.local","","False","Hornas-2022.Horna.local : Nazwa DNS nie istnieje
-","2023-08-09 18:31",""
+","2023-08-10 08:55",""
 "S-1-5-21-4094502252-371443177-3481794996-5616","Zabbix-PS-TEST.Horna.local","","False","Zabbix-PS-TEST.Horna.local : Nazwa DNS nie istnieje
-","2023-08-09 18:31",""
+","2023-08-10 08:55",""
 "S-1-5-21-4094502252-371443177-3481794996-5617","mac-mini.horna.local","","False","mac-mini.horna.local : Nazwa DNS nie istnieje
-","2023-08-09 18:31",""
+","2023-08-10 08:55",""
 "S-1-5-21-4094502252-371443177-3481794996-5625","Windows-VSCode.Horna.local","","False","Windows-VSCode.Horna.local : Nazwa DNS nie istnieje
-","2023-08-09 18:31",""
-"S-1-5-21-4094502252-371443177-3481794996-5627","Service-i7-3770.Horna.local","192.168.0.13","False","Request timed out.
-","2023-08-09 18:31",""
-"S-1-5-21-4094502252-371443177-3481794996-6102","Hyper-V-Server.Horna.local","","False","Hyper-V-Server.Horna.local : Nazwa DNS nie istnieje
-","2023-08-09 18:31",""
-"S-1-5-21-4094502252-371443177-3481794996-6103","Server-Core.Horna.local","192.168.0.202","True","","2023-08-09 18:31","2023-08-09 18:31"
-"S-1-5-21-4094502252-371443177-3481794996-6603","Server-Automation.Horna.local","192.168.0.203","True","","2023-08-09 18:31","2023-08-09 18:31"
+","2023-08-10 08:55",""
+"S-1-5-21-4094502252-371443177-3481794996-5627","Service-i7-3770.Horna.local","192.168.0.13","False","","2023-08-10 08:55","2023-08-09 20:55"
+"S-1-5-21-4094502252-371443177-3481794996-6102","Hyper-V-Server.Horna.local","192.168.0.202","True","","2023-08-10 08:55","2023-08-10 08:55"
+"S-1-5-21-4094502252-371443177-3481794996-6103","Server-Core.Horna.local","192.168.0.202","True","","2023-08-10 08:55","2023-08-10 08:55"
+"S-1-5-21-4094502252-371443177-3481794996-6603","Server-Automation.Horna.local","192.168.0.203","True","","2023-08-10 08:55","2023-08-10 08:55"

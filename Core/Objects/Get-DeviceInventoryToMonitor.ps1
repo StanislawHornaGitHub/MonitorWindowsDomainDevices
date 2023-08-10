@@ -1,6 +1,6 @@
 <#
     .DESCRIPTION
-    Script to initialize folder structure required to categorize tables
+    Script to get list of devices joined to AD with DNS names and IPs
 
 #>
 Import-Module "./Core/Import-AllModules.psm1"
@@ -9,18 +9,34 @@ New-Variable -Name "DNS_SERVER_NAME" -Value "pfsense" -Force -Scope Script -Opti
 New-Variable -Name "PING_TIMEOUT" -Value 500 -Force -Scope Script -Option ReadOnly
 New-Variable -Name "DB_PATH" -Value "./DataBase" -Force -Scope Script -Option ReadOnly
 New-Variable -Name "INVENTORY_TABLE" -Value "$DB_PATH/Object/Inventory.csv" -Force -Scope Script -Option ReadOnly
+New-Variable -Name "AVAILABLE_DEVICES_TABLE" -Value "$DB_PATH/Temp/AvailableDevices.csv" -Force -Scope Script -Option ReadOnly
 function Invoke-Main {
-    $Credentials = Get-CredentialFromJenkins
-    $Computer = Get-ComputerList
-    $Result = New-Object System.Collections.ArrayList
-    Get-ComputerIsActive
-    Invoke-Compare
-    Export-Table
+    $ExitCode = 0
+    try {
+        $Credentials = Get-CredentialFromJenkins
+        $Computer = Get-ComputerList
+        $Result = New-Object System.Collections.ArrayList
+        Get-ComputerIsActive
+        Invoke-Compare
+        Export-Table
+        Get-AvailableDevices
+    }
+    catch {
+        Write-Error -Message $_.Exception.Message
+        $ExitCode = 1
+    }finally{
+        exit $ExitCode
+    }
 }
 
 function Get-ComputerList {
-    $Computer = Get-ADComputer -Filter * -Credential $credentials
-    $Computer = $Computer | Where-Object { $_.Enabled -eq $true }
+    try {
+        $Computer = Get-ADComputer -Filter * -Credential $credentials -ErrorAction Stop
+        $Computer = $Computer | Where-Object { $_.Enabled -eq $true }
+    }
+    catch {
+        throw $_.Exception.Message
+    }
     return $Computer
 }
 
@@ -79,8 +95,15 @@ function Invoke-Compare {
 }
 
 function Export-Table {
-    $Result | Export-Csv -Path $INVENTORY_TABLE 
-    
+    if ($(Test-Path -Path $INVENTORY_TABLE)) {
+        Remove-Item -Path $INVENTORY_TABLE -Force -Confirm:$false | Out-Null
+    }
+    $Result | Export-Csv -Path $INVENTORY_TABLE -NoTypeInformation
+}
+
+function Get-AvailableDevices {
+    $AvailableDevices = $Result | Where-Object {$_.isActive -eq $true}
+    $AvailableDevices | Export-Csv -Path $AVAILABLE_DEVICES_TABLE -NoTypeInformation
 }
 
 function Invoke-Ping {
