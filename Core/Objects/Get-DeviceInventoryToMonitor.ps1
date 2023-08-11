@@ -8,9 +8,7 @@ Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "DNS_SERVER_NAME" -Value "pfsense" -Force -Scope Script -Option ReadOnly
 New-Variable -Name "PING_TIMEOUT" -Value 500 -Force -Scope Script -Option ReadOnly
 New-Variable -Name "TEST_PS_REMOTING_TIMEOUT" -Value 500 -Scope Script -Option ReadOnly
-New-Variable -Name "DB_PATH" -Value "./DataBase" -Force -Scope Script -Option ReadOnly
-New-Variable -Name "INVENTORY_TABLE" -Value "$DB_PATH/Object/Inventory.csv" -Force -Scope Script -Option ReadOnly
-New-Variable -Name "AVAILABLE_DEVICES_TABLE" -Value "$DB_PATH/Temp/AvailableDevices.csv" -Force -Scope Script -Option ReadOnly
+
 
 function Invoke-Main {
     $ExitCode = 0
@@ -19,7 +17,7 @@ function Invoke-Main {
         $Computer = Get-ComputerList
         $Result = New-Object System.Collections.ArrayList
         Get-ComputerIsActive
-        Invoke-Compare
+        Invoke-InventoryComparison -TablePath $INVENTORY_TABLE -ColumnsToRewrite @("LastSeen")
         Export-ObjectTable -OutputTable $INVENTORY_TABLE -Result $Result
         Get-AvailableDevices
     }
@@ -101,32 +99,6 @@ function Get-ComputerIsActive {
     }    
 }
 
-function Invoke-Compare {
-    # If the table does not exist there is nothing to compare
-    if (-not $(Test-Path -Path $INVENTORY_TABLE)) {
-        return
-    }
-    $old = Import-Csv -Path $INVENTORY_TABLE
-    $old = Convert-CsvToHash -SourceTable $old -ColumnNameGroup "DNSHostName"
-    # Loop through collected entries to lookup last seen date
-    for ($i = 0; $i -lt $Result.Count; $i++) {
-        if ($Result[$i].isActive -eq $false) {
-            $Hostname = $Result[$i].'DNSHostName'
-            $Result[$i].'LastSeen' = $($old.$Hostname.'LastSeen')
-        }
-    }
-    
-}
-
-function Export-Table {
-    # Remove the old table if exists
-    if ($(Test-Path -Path $INVENTORY_TABLE)) {
-        Remove-Item -Path $INVENTORY_TABLE -Force -Confirm:$false | Out-Null
-    }
-    # Export newly created table
-    $Result | Export-Csv -Path $INVENTORY_TABLE -NoTypeInformation
-}
-
 function Get-AvailableDevices {
     # Get the devices which met all requirements to mark them as active
     $AvailableDevices = $Result | Where-Object { $_.isActive -eq $true }
@@ -191,6 +163,29 @@ function Test-PSRemotingServices {
         throw $Message
     }
     return $false
+}
+function Invoke-InventoryComparison { 
+    param(
+        $TablePath,
+        $Result,
+        $ColumnsToRewrite
+    )
+    # If the table does not exist there is nothing to compare
+    if (-not $(Test-Path -Path $TablePath)) {
+        return
+    }
+    $oldResult = Import-Csv -Path $TablePath
+    $oldResult = Convert-CsvToHash -SourceTable $oldResult -ColumnNameGroup "DNSHostName"
+    # Loop through collected entries to lookup last seen date
+    for ($i = 0; $i -lt $Result.Count; $i++) {
+        if ($Result[$i].isActive -eq $false) {
+            $Hostname = $Result[$i].'DNSHostName'
+            foreach ($C in $ColumnsToRewrite) {
+                $Result[$i].$C = $($oldResult.$Hostname.$C)
+            }   
+        }
+    }
+
 }
 
 Invoke-Main
