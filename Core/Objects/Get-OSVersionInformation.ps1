@@ -1,6 +1,6 @@
 <#
     .DESCRIPTION
-    Script to get OS properties, version, build, type.
+    Script to get OS properties, version, build, activation status
 #>
 Import-Module "./Core/Import-AllModules.psm1"
 
@@ -11,11 +11,21 @@ New-Variable -Name "DB_PATH" -Value "./DataBase" -Force -Scope Script -Option Re
 New-Variable -Name "OS_VERSION_TABLE" -Value "$ROOT_DIRECTORY/Object/OS_version.csv" -Force -Scope Script -Option ReadOnly
 
 function Invoke-Main {
-    $Credentials = Get-CredentialFromJenkins
-    $Computer = Get-ComputerListToProcess
-    $Result = New-Object System.Collections.ArrayList
-    Get-WindowsVersion
-    Export-ObjectTable -OutputTable $OS_VERSION_TABLE -Result $Result
+    $ExitCode = 0
+    try {
+        $Credentials = Get-CredentialFromJenkins
+        $Computer = Get-ComputerListToProcess
+        $Result = New-Object System.Collections.ArrayList
+        Get-WindowsVersion
+        Export-ObjectTable -OutputTable $OS_VERSION_TABLE -Result $Result
+    }
+    catch {
+        Write-Error -Message $_.Exception.Message
+        $ExitCode = 1
+    }
+    finally{
+        exit $ExitCode
+    }
 }
 
 
@@ -69,7 +79,7 @@ function Get-WindowsVersion {
                 $License = Get-WMIObject -Class $LICENSE_CLASS -ComputerName $($C.DNSHostName) `
                     -Filter "Name like 'Windows%'" -ErrorAction Stop | `
                     Where-Object { $_.PartialProductKey }
-                    $successLicense = $true
+                $successLicense = $true
             }
             catch {
                 $Entry.Error += $($_.exception.message)
@@ -84,7 +94,7 @@ function Get-WindowsVersion {
                 $Entry.'isLicenseActivated' = [bool]$($License.LicenseStatus)
             }
         }
-        if($successOS -and $successLicense){
+        if ($successOS -and $successLicense) {
             $Entry.'LastUpdate' = $LastUpdate
         }
         $Result.Add($Entry) | Out-Null

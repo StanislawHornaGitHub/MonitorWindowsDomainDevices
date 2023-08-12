@@ -61,17 +61,26 @@ function Invoke-Compare {
         $TablePath,
         $Result
     )
+    $sortColumnName = 'LastUpdate'
     # If the table does not exist there is nothing to compare
     if (-not $(Test-Path -Path $TablePath)) {
         return $Result
     }
-    [System.Collections.ArrayList]$oldResult = Import-Csv -Path $TablePath
-    for ($i = 0; $i -lt $Result.Count; $i++) {
-        $oldResult.Add($oldResult[$i]) | Out-Null
+    # If table is Inventory change sorting column name
+    if($TablePath -eq $INVENTORY_TABLE){
+        $sortColumnName = 'LastSeen'
     }
+    # Import table from last refresh as a Arraylist
+    [System.Collections.ArrayList]$oldResult = Import-Csv -Path $TablePath
+    # Add all new results
+    for ($i = 0; $i -lt $oldResult.Count; $i++) {
+        $Result.Add($oldResult[$i]) | Out-Null
+    }
+    # remove duplicates sorted by date
     $Result = Remove-Duplicates -SourceTable $Result `
         -ColumnNameGroup "DNSHostName" `
-        -ColumnNameSort 'LastUpdate' `
+        -ColumnNameSort $sortColumnName `
         -Descending -DateTime
+        
     return $Result
 }

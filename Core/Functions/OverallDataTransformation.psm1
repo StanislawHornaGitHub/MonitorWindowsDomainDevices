@@ -181,7 +181,7 @@ PSCustomObject
 	$ErrorActionPreference = 'SilentlyContinue'
 	Switch ($true) {
 		($ColumnNameSort -and $DateTime -and $Descending) {
-			$SourceTable | Sort-Object -property { [System.DateTime]::ParseExact($_.$ColumnNameSort, "yyyy-MM-dd HH:mm:ss", $null) } -Descending `
+			$SourceTable | Sort-Object -property { [System.DateTime]::ParseExact($_.$ColumnNameSort, "yyyy-MM-dd HH:mm", $null) } -Descending `
 			| ForEach-Object {
 				if (-not($Hash.ContainsKey($_.$ColumnNameGroup))) {
 					$Hash.Add($_.$ColumnNameGroup, $_)
@@ -189,7 +189,7 @@ PSCustomObject
 			}
 		}
 		($ColumnNameSort -and $DateTime) {
-			$SourceTable | Sort-Object -property { [System.DateTime]::ParseExact($_.$ColumnNameSort, "yyyy-MM-dd HH:mm:ss", $null) } `
+			$SourceTable | Sort-Object -property { [System.DateTime]::ParseExact($_.$ColumnNameSort, "yyyy-MM-dd HH:mm", $null) } `
 			| ForEach-Object {
 				if (-not($Hash.ContainsKey($_.$ColumnNameGroup))) {
 					$Hash.Add($_.$ColumnNameGroup, $_)

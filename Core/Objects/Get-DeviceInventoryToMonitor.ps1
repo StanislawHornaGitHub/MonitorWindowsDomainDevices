@@ -17,7 +17,6 @@ function Invoke-Main {
         $Computer = Get-ComputerList
         $Result = New-Object System.Collections.ArrayList
         Get-ComputerIsActive
-        Invoke-InventoryComparison -TablePath $INVENTORY_TABLE -ColumnsToRewrite @("LastSeen")
         Export-ObjectTable -OutputTable $INVENTORY_TABLE -Result $Result
         Get-AvailableDevices
     }
@@ -58,9 +57,9 @@ function Get-ComputerIsActive {
             'isActiveWinRM' = $false
             'isActiveTCP'   = $false
             'isActive'      = $false
-            'Error'         = ""
             'LastUpdate'    = $LastUpdate
             'LastSeen'      = ""
+            'Error'         = ""
         }
         $Entry.DNSHostName = $C.DNSHostName
         try {
@@ -101,7 +100,7 @@ function Get-ComputerIsActive {
 
 function Get-AvailableDevices {
     # Get the devices which met all requirements to mark them as active
-    $AvailableDevices = $Result | Where-Object { $_.isActive -eq $true }
+    $AvailableDevices = $Result | Where-Object { $_.isActive -eq $true } | Sort-Object -Property DNSHostName -Unique
     $AvailableDevices | Export-Csv -Path $AVAILABLE_DEVICES_TABLE -NoTypeInformation
 }
 
@@ -163,29 +162,6 @@ function Test-PSRemotingServices {
         throw $Message
     }
     return $false
-}
-function Invoke-InventoryComparison { 
-    param(
-        $TablePath,
-        $Result,
-        $ColumnsToRewrite
-    )
-    # If the table does not exist there is nothing to compare
-    if (-not $(Test-Path -Path $TablePath)) {
-        return
-    }
-    $oldResult = Import-Csv -Path $TablePath
-    $oldResult = Convert-CsvToHash -SourceTable $oldResult -ColumnNameGroup "DNSHostName"
-    # Loop through collected entries to lookup last seen date
-    for ($i = 0; $i -lt $Result.Count; $i++) {
-        if ($Result[$i].isActive -eq $false) {
-            $Hostname = $Result[$i].'DNSHostName'
-            foreach ($C in $ColumnsToRewrite) {
-                $Result[$i].$C = $($oldResult.$Hostname.$C)
-            }   
-        }
-    }
-
 }
 
 Invoke-Main
