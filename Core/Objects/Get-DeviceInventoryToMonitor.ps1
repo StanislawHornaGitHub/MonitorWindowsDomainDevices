@@ -34,6 +34,7 @@ function Get-ComputerList {
     try {
         # Get list of all devices joined to AD Domian
         $Computer = Get-ADComputer -Filter * -Credential $credentials -ErrorAction Stop   
+        $Computer = $Computer | Where-Object {$_.DNSHostName -notin $DEVICES_RUNNING_OTHER_OS_THAN_WIN}
     }
     catch {
         throw $_.Exception.Message

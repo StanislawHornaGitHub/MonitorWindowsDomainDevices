@@ -8,3 +8,8 @@ New-Variable -Name "EVENT_DIRECTORY" -Value "$ROOT_DIRECTORY/Event" -Force -Scop
 New-Variable -Name "TEMP_DIRECTORY" -Value "$ROOT_DIRECTORY/Temp" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "INVENTORY_TABLE" -Value "$ROOT_DIRECTORY/Object/Inventory.csv" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "AVAILABLE_DEVICES_TABLE" -Value "$ROOT_DIRECTORY/Temp/AvailableDevices.csv" -Force -Scope Global -Option ReadOnly
+
+New-Variable `
+    -Name "DEVICES_RUNNING_OTHER_OS_THAN_WIN" `
+    -Value @("mac-mini.horna.local") `
+    -Force -Scope Global -Option ReadOnly
