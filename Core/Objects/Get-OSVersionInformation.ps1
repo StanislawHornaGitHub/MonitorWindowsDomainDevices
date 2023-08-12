@@ -63,7 +63,7 @@ function Get-WindowsVersion {
             if ($successOS) {
                 $Entry.'OS Version' = $OS.Caption
                 $Entry.'OS build' = $OS.Version
-                $Entry.'OS Architecture' = $OS.OSArchitecture
+                $Entry.'OS Architecture' = $($OS.OSArchitecture).Substring(0,6)
             }
         }
         $successLicense = $false

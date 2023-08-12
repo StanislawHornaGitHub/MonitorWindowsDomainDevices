@@ -17,8 +17,8 @@ function Invoke-Main {
         $Computer = Get-ComputerList
         $Result = New-Object System.Collections.ArrayList
         Get-ComputerIsActive
-        Export-ObjectTable -OutputTable $INVENTORY_TABLE -Result $Result
         Get-AvailableDevices
+        Export-Inventory
     }
     catch {
         Write-Error -Message $_.Exception.Message
@@ -162,6 +162,30 @@ function Test-PSRemotingServices {
         throw $Message
     }
     return $false
+}
+
+function Export-Inventory {
+  
+    # If the table does not exist there is nothing to compare
+    if (-not $(Test-Path -Path $INVENTORY_TABLE)) {
+        return
+    }
+    $old = Import-Csv -Path $INVENTORY_TABLE
+    $old = Convert-CsvToHash -SourceTable $old -ColumnNameGroup "DNSHostName"
+    # Loop through collected entries to lookup last seen date
+    for ($i = 0; $i -lt $Result.Count; $i++) {
+        $Hostname = $Result[$i].'DNSHostName'
+        if (
+            ($Result[$i].isActive -eq $false) `
+                -and `
+            ($old.ContainsKey($Hostname))
+        ) {
+            
+            $Result[$i].'LastSeen' = $($old.$Hostname.'LastSeen')
+        }
+    }
+    Remove-Item -Path $INVENTORY_TABLE -Force -Confirm:$false | Out-Null
+    $Result | Export-Csv -Path $INVENTORY_TABLE -NoTypeInformation
 }
 
 Invoke-Main
