@@ -6,6 +6,7 @@
 Import-Module "./Core/Import-AllModules.psm1"
 
 New-Variable -Name 'TEST_PS_REMOTING_TIMEOUT' -Value 100 -Force -Scope Script -Option ReadOnly
+New-Variable -Name "PING_TIMEOUT" -Value 50 -Force -Scope Script -Option ReadOnly
 function Invoke-Main {
     $Credentials = Get-CredentialFromJenkins
     [System.Collections.ArrayList]$Computer = Get-ComputerListToProcess
@@ -15,8 +16,8 @@ function Invoke-Main {
 function Test-Computers {
     $IndexesToRemove = @()
     for ($i = 0; $i -lt $Computer.Count; $i++) {
-        $Hostname = $Computer[$i].DNSHostName
-        if($(Test-WinRMservice -ComputerName $Hostname) -eq $false){
+        $IP = $Computer[$i].IPaddress
+        if((Invoke-Ping -IPaddress $IP).PingSucceded -eq $false){
             $IndexesToRemove += $i
         }
     }
@@ -24,36 +25,24 @@ function Test-Computers {
         $Computer.RemoveAt($_)
     }
 }
-function Test-WinRMservice {
+function Invoke-Ping {
     param (
-        $ComputerName
+        $IPaddress
     )
-    try {
-        # Invoke command remotely to verify if PS Remoting is active
-        Invoke-Command -ComputerName $ComputerName -Credential $credentials -ScriptBlock {
-            Get-Service -Name WinRM, RpcSs
-        } -AsJob -JobName $ComputerName | Out-Null
+    # Declare ping output
+    $PingResult = @{
+        "PingSucceded" = $false
+        "Error"        = ""
     }
-    catch {
-        throw $_.Exception.Message
+    # Ping the device with timeout to speed up proccessing
+    $Ping = PING.EXE $IPaddress -n 1 -w $PING_TIMEOUT
+    if ($Ping[2] -like "Reply from $IPadress*") {
+        $PingResult.PingSucceded = $true
     }
-    # Wait for PS Remoting response with timeout to speed up processing
-    Wait-Job -Name $ComputerName -Timeout $TEST_PS_REMOTING_TIMEOUT | Out-Null
-    try {
-        # Collect the output
-        $Rjob = Receive-Job -Name $ComputerName -ErrorAction Stop
+    else {
+        $PingResult.Error = "$($Ping[2]) ; "   
     }
-    catch {
-        throw $_.Exception.Message
-    }
-    Remove-Job -Name $ComputerName | Out-Null
-    # Get services which are not running
-    $notRunningServices = $Rjob | Where-Object { $_.Status -ne "Running" }
-    # If all of them are running, PS Remoting is working 
-    if ($null -eq $notRunningServices) {
-        return $true
-    }
-    return $false
+    return $PingResult
 }
 
 Invoke-Main

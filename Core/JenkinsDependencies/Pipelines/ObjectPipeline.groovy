@@ -2,9 +2,9 @@
 pipeline {
     agent any
     stages {
-        stage('Get-DeviceInventoryToMonitor') {
+        stage('Test-ActiveDevices') {
             steps {
-                build 'Get-DeviceInventoryToMonitor'
+                build 'Test-ActiveDevices'
             }
         }
         stage('Collect Object Data') {

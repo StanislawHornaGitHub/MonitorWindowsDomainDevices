@@ -6,8 +6,8 @@
 Import-Module "./Core/Import-AllModules.psm1"
 
 New-Variable -Name "DNS_SERVER_NAME" -Value "pfsense" -Force -Scope Script -Option ReadOnly
-New-Variable -Name "PING_TIMEOUT" -Value 500 -Force -Scope Script -Option ReadOnly
-New-Variable -Name "TEST_PS_REMOTING_TIMEOUT" -Value 500 -Scope Script -Option ReadOnly
+New-Variable -Name "PING_TIMEOUT" -Value 50 -Force -Scope Script -Option ReadOnly
+New-Variable -Name "TEST_PS_REMOTING_TIMEOUT" -Value 50 -Scope Script -Option ReadOnly
 
 
 function Invoke-Main {

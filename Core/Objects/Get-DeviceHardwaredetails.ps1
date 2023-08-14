@@ -94,7 +94,7 @@ function Get-DeviceDetails {
         }
     }
     Get-Job -State Running
-    Get-Job | Remove-Job
+    Get-Job | Remove-Job -Force
     
 }
 
