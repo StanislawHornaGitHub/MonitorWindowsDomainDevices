@@ -67,7 +67,7 @@ function Invoke-Compare {
         return $Result
     }
     # If table is Inventory change sorting column name
-    if($TablePath -eq $INVENTORY_TABLE){
+    if ($TablePath -eq $INVENTORY_TABLE) {
         $sortColumnName = 'LastSeen'
     }
     # Import table from last refresh as a Arraylist
@@ -84,3 +84,70 @@ function Invoke-Compare {
         
     return $Result
 }
+
+function Get-WMIDataAsJob {
+    <#
+    .DESCRIPTION
+    Function to Start jobs collecting Data from WMI
+    
+    .INPUTS
+    $InputHash = @{
+        "CPU" = @{
+            "CLASS_Name" = 'Win32_Processor'
+            "Property" = @("Name", "NumberOfCores", "NumberOfLogicalProcessors")
+            "Filter" = ""
+        }
+        "Device" = @{
+            "CLASS_Name" = "Win32_ComputerSystem"
+            "Property" = @("Manufacturer", "Model")
+            "Filter" = ""
+        }
+        "RAM" = @{
+            "CLASS_Name" = "Win32_PhysicalMemory"
+            "Property" = @("Capacity", "ConfiguredClockSpeed", "Manufacturer")
+            "Filter" = ""
+        }
+    }
+#>   
+    param (
+        [PSCredential] $Credentials,
+        $InputHash
+    )
+    # Get List of Available devices
+    $Computer = Get-ComputerListToProcess
+    foreach ($C in $Computer) {
+        # Start Separate job for each device
+        Start-Job -Name "$($C.DNSHostName)" -ScriptBlock {
+            param(
+                $ComputerName,
+                [PSCredential] $Credentials,
+                $InputHash
+            )
+            # Collect data from WMI
+            $Output = Invoke-Command -ComputerName $ComputerName -Credential $Credentials -ScriptBlock {
+                param(
+                    $InputHash
+                )
+                $Output = @{}
+                # Rebuild structure from input hash
+            
+                foreach ($D in $InputHash.Keys) {
+                    try {
+                        $Output.Add($D, $(Get-WmiObject -Class $($InputHash.$D.CLASS_Name) `
+                                    -Property $($InputHash.$D.Property) `
+                                    -Filter $($InputHash.$D.Filter) `
+                                    -ErrorAction Stop)
+                        )
+                    }
+                    catch {
+                        throw $_.Exception.Message
+                    }
+        
+                }
+                return $Output
+            } -ArgumentList $InputHash
+            return $Output
+        } -ArgumentList $($C.DNSHostName), $Credentials, $InputHash | Out-Null
+    }
+}
+
