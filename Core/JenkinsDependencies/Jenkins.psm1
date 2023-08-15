@@ -117,7 +117,7 @@ function Get-WMIDataAsJob {
     $Computer = Get-ComputerListToProcess
     foreach ($C in $Computer) {
         # Start Separate job for each device
-        Start-Job -Name "$($C.DNSHostName)" -ScriptBlock {
+        Start-Job -Name "WMI;$($C.DNSHostName)" -ScriptBlock {
             param(
                 $ComputerName,
                 [PSCredential] $Credentials,
@@ -150,4 +150,55 @@ function Get-WMIDataAsJob {
         } -ArgumentList $($C.DNSHostName), $Credentials, $InputHash | Out-Null
     }
 }
-
+function Get-RegistryDataAsJob {
+    <#
+    .DESCRIPTION
+    Function to Start jobs collecting Data from Registry
+    
+    .INPUTS
+    $InputHashREG = @{
+        "OS" = @{
+            "RegistryPath" = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+            "Property" = @('ReleaseID','DisplayVersion')
+        }
+    }
+#>   
+    param (
+        [PSCredential] $Credentials,
+        $InputHash
+    )
+    $Computer = Get-ComputerListToProcess
+    foreach ($C in $Computer) {
+        # Start Separate job for each device
+        Start-Job -Name "REG;$($C.DNSHostName)" -ScriptBlock {
+            param(
+                $ComputerName,
+                [PSCredential] $Credentials,
+                $InputHash
+            )
+            # Collect data from WMI
+            $Output = Invoke-Command -ComputerName $ComputerName -Credential $Credentials -ScriptBlock {
+                param(
+                    $InputHash
+                )
+                $Output = @{}
+                # Rebuild structure from input hash
+                foreach ($D in $InputHash.Keys) {
+                    $Output.Add($D, @{})
+                    foreach ($P in $InputHash.$D.Property) {
+                        try {
+                            $Output.$D.Add($P, (Get-Item -path $($InputHash.$D.RegistryPath)`
+                                        -ErrorAction Stop`
+                                        ).GetValue($P))
+                        }
+                        catch {
+                            throw $_.Exception.Message
+                        }
+                    }
+                }
+                return $Output
+            } -ArgumentList $InputHash
+            return $Output
+        } -ArgumentList $($C.DNSHostName), $Credentials, $InputHash | Out-Null
+    }
+}

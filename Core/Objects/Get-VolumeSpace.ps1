@@ -6,7 +6,7 @@ Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 
 
-New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 20 -Force -Scope Script -Option ReadOnly
+New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 30 -Force -Scope Script -Option ReadOnly
 New-Variable -Name "STORAGE_PROPERTIES_TABLE" -Value "$ROOT_DIRECTORY/Object/Volume_Space.csv" -Force -Scope Script -Option ReadOnly
 function Invoke-Main {
     $InputHash = @{
@@ -41,7 +41,7 @@ function Get-VolumeDetails {
         if ($null -ne $jobName) {
             Write-Host "Operations during timeout - $jobname"
             $Entry = [pscustomobject] @{
-                'DNSHostName'               = $jobName
+                'DNSHostName'               = $($jobName.split(";")[1])
                 'LastUpdate'                = ""
                 'SystemDriveCapacity [GB]'  = 0
                 'SystemDriveFreeSpace [GB]' = 0
@@ -71,8 +71,12 @@ function Get-VolumeDetails {
             Remove-Job -Name $jobName
         }
     }
-    Get-Job -State Running
-    Get-Job | Remove-Job
+    $remainingJobs = Get-Job
+    if($null -ne $remainingJobs){
+        Get-Job | Remove-Job -Force
+        $remainingJobs
+        throw "Background jobs were running longer than REMOTE_CONNECTION_TIMEOUT_SECONDS ($REMOTE_CONNECTION_TIMEOUT_SECONDS)"
+    }
 }
 
 function Get-SystemDriveDetails {
