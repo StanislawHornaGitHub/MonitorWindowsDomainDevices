@@ -15,10 +15,7 @@ function Invoke-Main {
     try {
         $Credentials = Get-CredentialFromJenkins
         $Computer = Get-ComputerList
-        $Result = New-Object System.Collections.ArrayList
         Get-ComputerIsActive
-        Get-AvailableDevices
-        Export-Inventory
     }
     catch {
         Write-Error -Message $_.Exception.Message
@@ -97,16 +94,8 @@ function Get-ComputerIsActive {
         # Add device entry to the main loop
         $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName "Inventory"
         Invoke-SQLquery -Query $updateQuery -Credential $Credentials
-        $Result.Add($Entry) | Out-Null
     }    
 }
-
-function Get-AvailableDevices {
-    # Get the devices which met all requirements to mark them as active
-    $AvailableDevices = $Result | Where-Object { $_.isActive -eq $true } | Sort-Object -Property DNSHostName -Unique
-    $AvailableDevices | Export-Csv -Path $AVAILABLE_DEVICES_TABLE -NoTypeInformation
-}
-
 function Invoke-Ping {
     param (
         $IPaddress
@@ -166,29 +155,4 @@ function Test-PSRemotingServices {
     }
     return $false
 }
-
-function Export-Inventory {
-  
-    # If the table does not exist there is nothing to compare
-    if (-not $(Test-Path -Path $INVENTORY_TABLE)) {
-        return
-    }
-    $old = Import-Csv -Path $INVENTORY_TABLE
-    $old = Convert-CsvToHash -SourceTable $old -ColumnNameGroup "DNSHostName"
-    # Loop through collected entries to lookup last seen date
-    for ($i = 0; $i -lt $Result.Count; $i++) {
-        $Hostname = $Result[$i].'DNSHostName'
-        if (
-            ($Result[$i].isActive -eq $false) `
-                -and `
-            ($old.ContainsKey($Hostname))
-        ) {
-            
-            $Result[$i].'LastSeen' = $($old.$Hostname.'LastSeen')
-        }
-    }
-    Remove-Item -Path $INVENTORY_TABLE -Force -Confirm:$false | Out-Null
-    $Result | Export-Csv -Path $INVENTORY_TABLE -NoTypeInformation
-}
-
 Invoke-Main

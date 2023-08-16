@@ -5,7 +5,7 @@
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 
-New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 30 -Force -Scope Script -Option ReadOnly
+New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 40 -Force -Scope Script -Option ReadOnly
 New-Variable -Name "DEVICE_PROPERTIES_TABLE" -Value "$ROOT_DIRECTORY/Object/Device_Hardware_details.csv" -Force -Scope Script -Option ReadOnly
 function Invoke-Main {
     $InputHash = @{
@@ -33,9 +33,7 @@ function Invoke-Main {
     try {
         $Credentials = Get-CredentialFromJenkins
         Get-WMIDataAsJob -Credentials $Credentials -InputHash $InputHash
-        $Result = New-Object System.Collections.ArrayList
         Get-DeviceDetails
-        Export-ObjectTable -OutputTable $DEVICE_PROPERTIES_TABLE -Result $Result
     }
     catch {
         Write-Error -Message $_.Exception.Message
@@ -91,7 +89,6 @@ function Get-DeviceDetails {
             }
             $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName "DeviceHardwareDetails"
             Invoke-SQLquery -Query $updateQuery -Credential $Credentials   
-            $Result.Add($Entry) | Out-Null
             Remove-Job -Name $jobName
         }
     }

@@ -6,7 +6,7 @@ Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 
 
-New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 30 -Force -Scope Script -Option ReadOnly
+New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 40 -Force -Scope Script -Option ReadOnly
 New-Variable -Name "OS_VERSION_TABLE" -Value "$ROOT_DIRECTORY/Object/OS_version.csv" -Force -Scope Script -Option ReadOnly
 
 function Invoke-Main {
@@ -31,11 +31,8 @@ function Invoke-Main {
     try {
         $Credentials = Get-CredentialFromJenkins
         $Reg = Get-OSfromRegistry
-        $reg
         Get-WMIDataAsJob -Credentials $Credentials -InputHash $InputHashWMI
-        $Result = New-Object System.Collections.ArrayList
         Get-WindowsVersion
-        Export-ObjectTable -OutputTable $OS_VERSION_TABLE -Result $Result
     }
     catch {
         Write-Error -Message $_.Exception.Message
@@ -130,7 +127,6 @@ function Get-WindowsVersion {
             }
             $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName "OSVersion"
             Invoke-SQLquery -Query $updateQuery -Credential $Credentials 
-            $Result.Add($Entry) | Out-Null
             Remove-Job -Name $jobName
         }
     }

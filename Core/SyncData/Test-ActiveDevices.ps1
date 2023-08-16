@@ -10,7 +10,6 @@ function Invoke-Main {
     $Credentials = Get-CredentialFromJenkins
     $Computer = Get-ComputerListToProcess
     Test-Computers
-    $Computer | Export-Csv -Path $AVAILABLE_DEVICES_TABLE -NoTypeInformation
 }
 function Test-Computers {
     $UpdateIsActiveQueryTemplate = Get-Content -Path "$SQL_QUERIES_DIRECTORY/UpdateIsActive.sql"
