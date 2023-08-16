@@ -95,6 +95,8 @@ function Get-ComputerIsActive {
             $Entry.isActive = $true
         }
         # Add device entry to the main loop
+        $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName "Inventory"
+        Invoke-SQLquery -Query $updateQuery -Credential $Credentials
         $Result.Add($Entry) | Out-Null
     }    
 }

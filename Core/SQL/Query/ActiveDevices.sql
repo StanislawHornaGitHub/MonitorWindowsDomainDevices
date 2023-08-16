@@ -2,4 +2,4 @@ SELECT
     DNSHostName,
     IPaddress 
 FROM Inventory
-WHERE isActiveWinRM=1
+WHERE isActive=1
