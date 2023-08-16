@@ -41,15 +41,15 @@ function Get-VolumeDetails {
         if ($null -ne $jobName) {
             Write-Host "Operations during timeout - $jobname"
             $Entry = [pscustomobject] @{
-                'DNSHostName'               = $($jobName.split(";")[1])
-                'LastUpdate'                = ""
-                'SystemDriveCapacity [GB]'  = 0
-                'SystemDriveFreeSpace [GB]' = 0
-                'SystemDriveUsed [%]'       = 0
-                'AllDriveCapacity [GB]'     = 0
-                'AllDriveFreeSpace [GB]'    = 0
-                'AllDriveUsed [%]'          = 0
-                'OtherDrivesDetails'        = ""
+                'DNSHostName'             = $($jobName.split(";")[1])
+                'LastUpdate'              = ""
+                'SystemDriveCapacity_GB'  = 0
+                'SystemDriveFreeSpace_GB' = 0
+                'SystemDriveUsed'       = 0
+                'AllDriveCapacity_GB'     = 0
+                'AllDriveFreeSpace_GB'    = 0
+                'AllDriveUsed'          = 0
+                'OtherDrivesDetails'      = ""
             }
             $success = $false
             try {
@@ -67,12 +67,14 @@ function Get-VolumeDetails {
                     $Entry.'LastUpdate' = $LastUpdate
                 }
             }
+            $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName "VolumeSpace"
+            Invoke-SQLquery -Query $updateQuery -Credential $Credentials 
             $Result.Add($Entry) | Out-Null
             Remove-Job -Name $jobName
         }
     }
     $remainingJobs = Get-Job
-    if($null -ne $remainingJobs){
+    if ($null -ne $remainingJobs) {
         Get-Job | Remove-Job -Force
         $remainingJobs
         throw "Background jobs were running longer than REMOTE_CONNECTION_TIMEOUT_SECONDS ($REMOTE_CONNECTION_TIMEOUT_SECONDS)"
@@ -86,10 +88,10 @@ function Get-SystemDriveDetails {
     )
     $SystemDrive = $Output.Volumes | Where-Object { $_.Caption -eq "C:\" }
 
-    $Entry.'SystemDriveCapacity [GB]' = [math]::Round($($SystemDrive.Capacity / 1GB), 2)
-    $Entry.'SystemDriveFreeSpace [GB]' = [math]::Round($($SystemDrive.FreeSpace / 1GB), 2)
-    $Entry.'SystemDriveUsed [%]' = $(($SystemDrive.Capacity - $SystemDrive.FreeSpace) / $SystemDrive.Capacity)
-    $Entry.'SystemDriveUsed [%]' = "$([math]::Round(($Entry.'SystemDriveUsed [%]'), 2) * 100) %"
+    $Entry.'SystemDriveCapacity_GB' = [math]::Round($($SystemDrive.Capacity / 1GB), 2)
+    $Entry.'SystemDriveFreeSpace_GB' = [math]::Round($($SystemDrive.FreeSpace / 1GB), 2)
+    $Entry.'SystemDriveUsed' = $(($SystemDrive.Capacity - $SystemDrive.FreeSpace) / $SystemDrive.Capacity)
+    $Entry.'SystemDriveUsed' = "$([math]::Round(($Entry.'SystemDriveUsed'), 2) * 100) %"
 
     return $Entry
 }
@@ -103,19 +105,20 @@ function Get-AllDrivesDetails {
     $Drives = $Output.Volumes
     if ($null -ne $Drives.Count) {
         for ($i = 0; $i -lt $Drives.Count; $i++) {
-            $Entry.'AllDriveCapacity [GB]' += ($Drives[$i].Capacity / 1GB)
-            $Entry.'AllDriveFreeSpace [GB]' += ($Drives[$i].FreeSpace / 1GB)
+            $Entry.'AllDriveCapacity_GB' += ($Drives[$i].Capacity / 1GB)
+            $Entry.'AllDriveFreeSpace_GB' += ($Drives[$i].FreeSpace / 1GB)
         }
-    }else {
-        $Entry.'AllDriveCapacity [GB]' = ($Drives.Capacity / 1GB)
-        $Entry.'AllDriveFreeSpace [GB]' = ($Drives.FreeSpace / 1GB)
+    }
+    else {
+        $Entry.'AllDriveCapacity_GB' = ($Drives.Capacity / 1GB)
+        $Entry.'AllDriveFreeSpace_GB' = ($Drives.FreeSpace / 1GB)
     }
 
-    $Entry.'AllDriveUsed [%]' = $(($($Entry.'AllDriveCapacity [GB]') - $($Entry.'AllDriveFreeSpace [GB]')) / $($Entry.'AllDriveCapacity [GB]'))
-    $Entry.'AllDriveUsed [%]' = "$([math]::Round(($Entry.'AllDriveUsed [%]'), 2) * 100) %"
+    $Entry.'AllDriveUsed' = $(($($Entry.'AllDriveCapacity_GB') - $($Entry.'AllDriveFreeSpace_GB')) / $($Entry.'AllDriveCapacity_GB'))
+    $Entry.'AllDriveUsed' = "$([math]::Round(($Entry.'AllDriveUsed' ), 2) * 100) %"
     
-    $Entry.'AllDriveCapacity [GB]' = [math]::Round($($Entry.'AllDriveCapacity [GB]'), 2)
-    $Entry.'AllDriveFreeSpace [GB]' = [math]::Round($($Entry.'AllDriveFreeSpace [GB]'), 2)
+    $Entry.'AllDriveCapacity_GB' = [math]::Round($($Entry.'AllDriveCapacity_GB'), 2)
+    $Entry.'AllDriveFreeSpace_GB' = [math]::Round($($Entry.'AllDriveFreeSpace_GB'), 2)
 
     $Drives = $Output.Volumes | Where-Object { $_.Caption -ne "C:\" }
     $Drives | ForEach-Object {

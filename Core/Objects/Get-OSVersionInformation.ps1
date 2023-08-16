@@ -92,10 +92,10 @@ function Get-WindowsVersion {
             $Entry = [PSCustomObject]@{
                 'DNSHostName'        = $($jobName.split(";")[1])
                 'LastUpdate'         = ""
-                'OS Version'         = ""
-                'OS Display Version' = ""
-                'OS build'           = ""
-                'OS Architecture'    = ""
+                'OS_Version'         = ""
+                'OS_Display_Version' = ""
+                'OS_build'           = ""
+                'OS_Architecture'    = ""
                 'isLicenseActivated' = $false
                 'Error'              = ""
             }
@@ -110,17 +110,17 @@ function Get-WindowsVersion {
             }
             finally {
                 if ($success) {
-                    $Entry.'OS Version' = $Output.OS.Caption
-                    $Entry.'OS build' = $Output.OS.Version
-                    $Entry.'OS build' += ".$($Reg.$($Entry.'DNSHostName').OS.UBR)"
-                    $Entry.'OS Architecture' = $($Output.OS.OSArchitecture).Substring(0, 6)
+                    $Entry.'OS_Version' = $Output.OS.Caption
+                    $Entry.'OS_build' = $Output.OS.Version
+                    $Entry.'OS_build' += ".$($Reg.$($Entry.'DNSHostName').OS.UBR)"
+                    $Entry.'OS_Architecture' = $($Output.OS.OSArchitecture).Substring(0, 6)
                     $Entry.'isLicenseActivated' = `
                         [bool](($Output.License | Where-Object { $_.PartialProductKey }).LicenseStatus)
                     
                     if($Reg.$($Entry.'DNSHostName').OS.DisplayVersion.length -ge 4){
-                        $Entry.'OS Display Version' = $Reg.$($Entry.'DNSHostName').OS.DisplayVersion
+                        $Entry.'OS_Display_Version' = $Reg.$($Entry.'DNSHostName').OS.DisplayVersion
                     }else {
-                        $Entry.'OS Display Version' = $Reg.$($Entry.'DNSHostName').OS.ReleaseID
+                        $Entry.'OS_Display_Version' = $Reg.$($Entry.'DNSHostName').OS.ReleaseID
                     }
 
                    
@@ -128,6 +128,8 @@ function Get-WindowsVersion {
                     $Entry.'LastUpdate' = $LastUpdate
                 }
             }
+            $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName "OSVersion"
+            Invoke-SQLquery -Query $updateQuery -Credential $Credentials 
             $Result.Add($Entry) | Out-Null
             Remove-Job -Name $jobName
         }
