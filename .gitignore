@@ -2,3 +2,4 @@ test.ps1
 *.csv
 .DS_Store
 *.config.json
+SQL-test.ps1

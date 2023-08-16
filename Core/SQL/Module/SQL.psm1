@@ -2,7 +2,7 @@ function Invoke-SQLquery {
     param (
         [String]$Query,
         [string]$FileQuery,
-        [PSCredential] $Credential
+        [PSCredential] $Credential = $(Get-CredentialFromJenkins)
     )
     if ($FileQuery) {
         $Output = Invoke-Sqlcmd `
