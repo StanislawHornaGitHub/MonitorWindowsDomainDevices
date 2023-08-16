@@ -87,7 +87,7 @@ function Get-DeviceDetails {
                     $Entry.'LastUpdate' = $LastUpdate
                 }
             }
-            $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName "DeviceHardwareDetails"
+            $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName "Hardware"
             Invoke-SQLquery -Query $updateQuery -Credential $Credentials   
             Remove-Job -Name $jobName
         }

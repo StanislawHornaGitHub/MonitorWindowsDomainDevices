@@ -52,6 +52,8 @@ function Get-SQLupdateSection {
     $SQL_Update_Query = "UPDATE $TableName"
     $columnsToUpdate = ($Entry | Get-Member -Type NoteProperty).Name
     $columnsToUpdate = $columnsToUpdate | Where-Object {$_ -ne $SQL_PRIMARY_KEY}
+    $columnsToUpdate = $columnsToUpdate | Where-Object {$null -ne $Entry.$_}
+    
     $setSection = "SET "
     $setSection += "$($columnsToUpdate[0]) = '$($Entry.$($columnsToUpdate[0]))'"
     for ($i = 1; $i -lt $columnsToUpdate.Count; $i++) {
@@ -68,6 +70,7 @@ function Get-SQLinsertSection {
     )
     $columnsToInsert = ($Entry | Get-Member -Type NoteProperty).Name
     $columnsToInsert = $columnsToInsert | Where-Object {$_ -ne $SQL_PRIMARY_KEY}
+    $columnsToInsert = $columnsToInsert | Where-Object {$null -ne $Entry.$_}
 
     $SQL_Insert_Query = "INSERT INTO $TableName ($SQL_PRIMARY_KEY"
     $valuesSection = "VALUES ('$($Entry.$SQL_PRIMARY_KEY)'"

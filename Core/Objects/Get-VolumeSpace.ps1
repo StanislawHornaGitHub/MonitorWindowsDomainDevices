@@ -43,10 +43,10 @@ function Get-VolumeDetails {
                 'LastUpdate'              = ""
                 'SystemDriveCapacity_GB'  = 0
                 'SystemDriveFreeSpace_GB' = 0
-                'SystemDriveUsed'       = 0
+                'SystemDriveUsed'         = 0
                 'AllDriveCapacity_GB'     = 0
                 'AllDriveFreeSpace_GB'    = 0
-                'AllDriveUsed'          = 0
+                'AllDriveUsed'            = 0
                 'OtherDrivesDetails'      = ""
             }
             $success = $false
@@ -65,7 +65,7 @@ function Get-VolumeDetails {
                     $Entry.'LastUpdate' = $LastUpdate
                 }
             }
-            $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName "VolumeSpace"
+            $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName "Storage"
             Invoke-SQLquery -Query $updateQuery -Credential $Credentials 
             Remove-Job -Name $jobName
         }

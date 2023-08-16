@@ -56,7 +56,7 @@ function Get-ComputerIsActive {
             'isActiveTCP'   = $false
             'isActive'      = $false
             'LastUpdate'    = $LastUpdate
-            'LastSeen'      = ""
+            'LastSeen'      = $null
             'Error'         = ""
         }
         $Entry.DNSHostName = $C.DNSHostName
