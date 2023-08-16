@@ -5,24 +5,22 @@
 #>
 Import-Module "./Core/Import-AllModules.psm1"
 
-New-Variable -Name 'TEST_PS_REMOTING_TIMEOUT' -Value 100 -Force -Scope Script -Option ReadOnly
 New-Variable -Name "PING_TIMEOUT" -Value 50 -Force -Scope Script -Option ReadOnly
 function Invoke-Main {
     $Credentials = Get-CredentialFromJenkins
-    [System.Collections.ArrayList]$Computer = Get-ComputerListToProcess
+    $Computer = Get-ComputerListToProcess
     Test-Computers
     $Computer | Export-Csv -Path $AVAILABLE_DEVICES_TABLE -NoTypeInformation
 }
 function Test-Computers {
-    $IndexesToRemove = @()
+    $UpdateIsActiveQueryTemplate = Get-Content -Path "$SQL_QUERIES_DIRECTORY/UpdateIsActive.sql"
     for ($i = 0; $i -lt $Computer.Count; $i++) {
         $IP = $Computer[$i].IPaddress
-        if((Invoke-Ping -IPaddress $IP).PingSucceded -eq $false){
-            $IndexesToRemove += $i
+        if ((Invoke-Ping -IPaddress $IP).PingSucceded -eq $false) {
+            $Hostname = $Computer[$i].DNSHostName
+            $QueryToInvoke = $UpdateIsActiveQueryTemplate.Replace("COMPUTER_DNS_HOSTNAME_VARIABLE", $Hostname)
+            Invoke-SQLquery -Query $QueryToInvoke -Credential $Credentials
         }
-    }
-    $IndexesToRemove | ForEach-Object {
-        $Computer.RemoveAt($_)
     }
 }
 function Invoke-Ping {

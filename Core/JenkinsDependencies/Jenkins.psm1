@@ -22,7 +22,7 @@ function Get-ComputerListToProcess {
 
 #>
     try {
-        $Result = Import-Csv -Path $AVAILABLE_DEVICES_TABLE -ErrorAction Stop
+        $Result = Invoke-SQLquery -FileQuery $SQL_ACTIVE_DEVICES_QUERY
     }
     catch {
         throw $_.Exception.Message

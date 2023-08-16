@@ -1,0 +1,3 @@
+UPDATE Inventory
+SET isActive = '0'
+WHERE DNSHostName = 'COMPUTER_DNS_HOSTNAME_VARIABLE';
