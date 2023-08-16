@@ -15,6 +15,8 @@ pipeline {
                     build 'Get-DeviceHardwaredetails'
                 }, Volume: {
                     build 'Get-VolumeSpace'
+                }, Boot : {
+                    build 'Get-BootInformation'
                 }
             }
         }
