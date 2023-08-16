@@ -64,11 +64,11 @@ function Get-DeviceDetails {
                 'NumberOfCores'             = 0
                 'NumberOfLogicalProcessors' = 0
                 'NumberOfRAMBanks'          = 0
-                'RAMCapacity [GB]'          = 0
-                'RAMSpeed [MHz]'            = ""
+                'RAMCapacity_GB'          = 0
+                'RAMSpeed_MHz'            = ""
                 'RAMmanufacturer'           = ""
                 'DiskName'                  = ""
-                'StorageCapacity [GB]'      = 0
+                'StorageCapacity_GB'      = 0
             }
             $success = $false
             try {
@@ -88,13 +88,15 @@ function Get-DeviceDetails {
 
                     $Entry.'LastUpdate' = $LastUpdate
                 }
-            }   
+            }
+            $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName "DeviceHardwareDetails"
+            Invoke-SQLquery -Query $updateQuery -Credential $Credentials   
             $Result.Add($Entry) | Out-Null
             Remove-Job -Name $jobName
         }
     }
     $remainingJobs = Get-Job
-    if($null -ne $remainingJobs){
+    if ($null -ne $remainingJobs) {
         Get-Job | Remove-Job -Force
         $remainingJobs
         throw "Background jobs were running longer than REMOTE_CONNECTION_TIMEOUT_SECONDS ($REMOTE_CONNECTION_TIMEOUT_SECONDS)"
@@ -146,7 +148,7 @@ function Get-RAMdetails {
     if ($null -eq $Entry.'NumberOfRAMBanks') {
         $Entry.'NumberOfRAMBanks' = 1
     }
-    $Output.RAM | ForEach-Object { $Entry.'RAMCapacity [GB]' += ($_.Capacity / 1GB) }
+    $Output.RAM | ForEach-Object { $Entry.'RAMCapacity_GB' += ($_.Capacity / 1GB) }
     
     $RAMmanufacturers = $Output.RAM.Manufacturer | Sort-Object -Unique
     if ( $RAMmanufacturers.Count -eq 1) {
@@ -160,9 +162,9 @@ function Get-RAMdetails {
     }
     
     $RAMspeeds = $Output.RAM.ConfiguredClockSpeed | Sort-Object -Unique
-    $Entry.'RAMSpeed [MHz]' = [string]$RAMspeeds[0]
+    $Entry.'RAMSpeed_MHz' = [string]$RAMspeeds[0]
     for ($i = 1; $i -lt $RAMspeeds.Count; $i++) {
-        $Entry.'RAMSpeed [MHz]' += ";$($RAMspeeds[$i])"
+        $Entry.'RAMSpeed_MHz' += ";$($RAMspeeds[$i])"
     }
     return $Entry
 }
@@ -176,8 +178,8 @@ function Get-DiskDetails {
     for ($i = 1; $i -lt ($Output.Drive).Count; $i++) {
         $Entry.'DiskName' += ";$($Output.Drive[0].Caption)"
     }
-    $Output.Drive | ForEach-Object { $Entry.'StorageCapacity [GB]' += ($_.Size / 1GB) }
-    $Entry.'StorageCapacity [GB]' = [math]::Round($($Entry.'StorageCapacity [GB]'), 0)
+    $Output.Drive | ForEach-Object { $Entry.'StorageCapacity_GB' += ($_.Size / 1GB) }
+    $Entry.'StorageCapacity_GB' = [math]::Round($($Entry.'StorageCapacity_GB'), 0)
     return $Entry
 }
 
