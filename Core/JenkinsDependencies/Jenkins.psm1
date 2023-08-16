@@ -202,3 +202,9 @@ function Get-RegistryDataAsJob {
         } -ArgumentList $($C.DNSHostName), $Credentials, $InputHash | Out-Null
     }
 }
+function Convert-WMIDateTime {
+    param (
+        $DateTimeString
+    )
+    return $("$($DateTimeString.Substring(0,4))-$($DateTimeString.Substring(4,2))-$($DateTimeString.Substring(6,2)) $($DateTimeString.Substring(8,2)):$($DateTimeString.Substring(10,2)):$($DateTimeString.Substring(12,2))")
+}

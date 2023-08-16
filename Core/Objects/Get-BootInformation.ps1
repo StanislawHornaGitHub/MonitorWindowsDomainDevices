@@ -1,49 +1,33 @@
 <#
     .DESCRIPTION
-    Script to get OS properties, version, build, activation status
+    Script to get Boot details
 #>
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 
-
 New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 40 -Force -Scope Script -Option ReadOnly
-
 
 function Invoke-Main {
     $InputHash = @{
         'Registry' = @{
-            "OS" = @{
-                "RegistryPath" = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
-                "Property"     = @('ReleaseID', 'DisplayVersion', 'UBR')
+            "FastStart" = @{
+                "RegistryPath" = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power"
+                "Property"     = @("HiberbootEnabled")
             }
         }
-        'WMI'      = @{
-            "OS"      = @{
+        'WMI' = @{
+            'LastBootTime' = @{
                 "CLASS_Name" = 'Win32_OperatingSystem'
-                "Property"   = @("Caption", "Version", "OSArchitecture")
+                "Property"   = @("LastBootUpTime")
                 "Filter"     = ""
             }
-            "License" = @{
-                "CLASS_Name" = "SoftwareLicensingProduct"
-                "Property"   = @("LicenseStatus", "PartialProductKey")
-                "Filter"     = "Name like 'Windows%'"
-            }
         }
     }
-    try {
-        $Credentials = Get-CredentialFromJenkins
-        Get-OSVersionAsJob
-        Get-WindowsVersionFromJob
-    }
-    catch {
-        Write-Error -Message $_.Exception.Message
-        $EXIT_CODE = 1
-    }
-    finally {
-        exit $EXIT_CODE
-    }
+    $Credentials = Get-CredentialFromJenkins
+    Get-BootInformationAsJob
+    Get-BootInformationFromJob
 }
-function Get-OSVersionAsJob {
+function Get-BootInformationAsJob {
     $Computer = Get-ComputerListToProcess
     foreach ($C in $Computer) {
         Start-Job -Name "$($C.DNSHostName)" -ScriptBlock {
@@ -94,7 +78,7 @@ function Get-OSVersionAsJob {
         } -ArgumentList $($C.DNSHostName), $Credentials, $InputHash | Out-Null
     }
 }
-function Get-WindowsVersionFromJob {
+function Get-BootInformationFromJob {
     $Timer = [System.Diagnostics.Stopwatch]::StartNew()
     $LastUpdate = (Get-Date).ToString("yyyy-MM-dd HH:mm")
     while ($null -ne (Get-Job) -and ($Timer.ElapsedMilliseconds -le ($REMOTE_CONNECTION_TIMEOUT_SECONDS * 1000))) {
@@ -104,13 +88,9 @@ function Get-WindowsVersionFromJob {
             Write-Host "Operations during timeout - $jobname"
             $Entry = [PSCustomObject]@{
                 'DNSHostName'        = $jobName
-                'LastUpdate'         = ""
-                'OS_Version'         = ""
-                'OS_Display_Version' = ""
-                'OS_build'           = ""
-                'OS_Architecture'    = ""
-                'isLicenseActivated' = $false
-                'Error'              = ""
+                'FastStartEnabled' = $null
+                'LastBootTime' = $null
+
             }
             $success = $false
             try {
@@ -123,19 +103,9 @@ function Get-WindowsVersionFromJob {
             }
             finally {
                 if ($success) {
-                    $Entry.'OS_Version' = $Output.'WMI'.OS.Caption
-                    $Entry.'OS_build' = "$($Output.'WMI'.OS.Version).$($Output.'Registry'.OS.UBR)"
-                    $Entry.'OS_Architecture' = $($Output.'WMI'.OS.OSArchitecture).Substring(0, 6)
-                    $Entry.'isLicenseActivated' = `
-                        [bool](($Output.'WMI'.License | Where-Object { $_.PartialProductKey }).LicenseStatus)
+                    $Entry.LastBootTime = $(Convert-WMIDateTime -DateTimeString $($Output.'WMI'.LastBootTime.LastBootUpTime))
+                    $entry.FastStartEnabled = [bool]$($Output.'Registry'.'FastStart'."HiberbootEnabled")
                     
-                    if ($Output.'Registry'.OS.DisplayVersion.length -ge 4) {
-                        $Entry.'OS_Display_Version' = $Output.'Registry'.OS.DisplayVersion
-                    }
-                    else {
-                        $Entry.'OS_Display_Version' = $Output.'Registry'.OS.ReleaseID
-                    }
-
                     $Entry.'LastUpdate' = $LastUpdate
                 }
             }
@@ -151,5 +121,6 @@ function Get-WindowsVersionFromJob {
         throw "Background jobs were running longer than REMOTE_CONNECTION_TIMEOUT_SECONDS ($REMOTE_CONNECTION_TIMEOUT_SECONDS)"
     }
 }
+
 
 Invoke-Main
