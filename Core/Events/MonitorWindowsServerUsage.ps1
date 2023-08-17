@@ -10,9 +10,7 @@ function Invoke-main {
     $Credentials = & "./Get-ADUserFromJenkins.ps1"
     foreach ($S in $Servers) {
         $Entry = [PSCustomObject]@{
-            'commonName'  = $S
-            'nameDNS'     = ""
-            'addressIP'   = ""
+            'DNSHostName' = ""
             'Status'      = ""
             'Model'       = ""
             'Cores'       = ""

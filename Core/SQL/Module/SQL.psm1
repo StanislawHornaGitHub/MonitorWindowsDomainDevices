@@ -69,12 +69,14 @@ function Get-SQLinsertSection {
         $TableName
     )
     $columnsToInsert = ($Entry | Get-Member -Type NoteProperty).Name
+
     $columnsToInsert = $columnsToInsert | Where-Object {$_ -ne $SQL_PRIMARY_KEY}
     $columnsToInsert = $columnsToInsert | Where-Object {$null -ne $Entry.$_}
 
     $SQL_Insert_Query = "INSERT INTO $TableName ($SQL_PRIMARY_KEY"
     $valuesSection = "VALUES ('$($Entry.$SQL_PRIMARY_KEY)'"
-    for ($i = 1; $i -lt $columnsToInsert.Count; $i++) {
+
+    for ($i = 0; $i -lt $columnsToInsert.Count; $i++) {
         $SQL_Insert_Query += ", $($columnsToInsert[$i])"
         $valuesSection += ", '$($Entry.$($columnsToInsert[$i]))'"
     }
