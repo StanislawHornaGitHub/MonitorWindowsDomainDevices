@@ -15,7 +15,7 @@ function Invoke-Main {
                 "Property"     = @("HiberbootEnabled")
             }
         }
-        'WMI' = @{
+        'WMI'      = @{
             'LastBootTime' = @{
                 "CLASS_Name" = 'Win32_OperatingSystem'
                 "Property"   = @("LastBootUpTime")
@@ -42,8 +42,9 @@ function Get-BootInformationAsJob {
                     $InputHash
                 )
                 $Output = @{
-                    'Registry' = @{}
-                    'WMI'      = @{}
+                    'Registry'     = @{}
+                    'WMI'          = @{}
+                    'LastBootType' = ""
                 }
                 # Rebuild structure from input hash
                 foreach ($D in $InputHash.'Registry'.Keys) {
@@ -70,8 +71,10 @@ function Get-BootInformationAsJob {
                     catch {
                         throw $_.Exception.Message
                     }
-    
                 }
+                $Output.'LastBootType' = (Get-WinEvent -ProviderName "Microsoft-Windows-Kernel-boot" `
+                        -FilterXPath '*[System[EventID=27]]' `
+                        -MaxEvents 1 ).Message
                 return $Output
             } -ArgumentList $InputHash
             return $Output
@@ -80,16 +83,16 @@ function Get-BootInformationAsJob {
 }
 function Get-BootInformationFromJob {
     $Timer = [System.Diagnostics.Stopwatch]::StartNew()
-    $LastUpdate = (Get-Date).ToString("yyyy-MM-dd HH:mm")
     while ($null -ne (Get-Job) -and ($Timer.ElapsedMilliseconds -le ($REMOTE_CONNECTION_TIMEOUT_SECONDS * 1000))) {
         $jobName = $null
         $jobName = (Get-Job | Where-Object { ($_.State -ne "Running") } | Select-Object -First 1).Name
         if ($null -ne $jobName) {
             Write-Host "Operations during timeout - $jobname"
             $Entry = [PSCustomObject]@{
-                'DNSHostName'        = $jobName
+                'DNSHostName'      = $jobName
                 'FastStartEnabled' = $null
-                'LastBootTime' = $null
+                'LastBootTime'     = $null
+                'LastBootType'     = $null
 
             }
             $success = $false
@@ -104,9 +107,10 @@ function Get-BootInformationFromJob {
             finally {
                 if ($success) {
                     $Entry.LastBootTime = $(Convert-WMIDateTime -DateTimeString $($Output.'WMI'.LastBootTime.LastBootUpTime))
-                    $entry.FastStartEnabled = [bool]$($Output.'Registry'.'FastStart'."HiberbootEnabled")
-                    
-                    $Entry.'LastUpdate' = $LastUpdate
+                    $Entry.FastStartEnabled = [bool]$($Output.'Registry'.'FastStart'."HiberbootEnabled")
+                    $Entry.LastBootType = $(Get-BootTypeFromHex -MessageString $($Output.'LastBootType') )
+
+
                 }
             }
             $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName "OperatingSystem"
@@ -119,6 +123,27 @@ function Get-BootInformationFromJob {
         Get-Job | Remove-Job -Force
         $remainingJobs
         throw "Background jobs were running longer than REMOTE_CONNECTION_TIMEOUT_SECONDS ($REMOTE_CONNECTION_TIMEOUT_SECONDS)"
+    }
+}
+
+function Get-BootTypeFromHex {
+    param(
+        $MessageString
+    )
+    if ($MessageString.Length -le 4) {
+        return $null
+    }
+    $Hex = $MessageString.Substring($($MessageString.Length - 4), 3)
+    switch ($Hex) {
+        "0x0" {
+            return "Normal boot"
+        }
+        "0x1" {
+            return "Fast start"
+        }
+        "0x2" {
+            return "Wakeup from Hibernation"
+        }
     }
 }
 
