@@ -5,25 +5,26 @@
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 
-New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 40 -Force -Scope Script -Option ReadOnly
 
-function Invoke-Main {
-    $InputHash = @{
-        'Registry' = @{
-            "FastStart" = @{
-                "RegistryPath" = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power"
-                "Property"     = @("HiberbootEnabled")
-            }
-        }
-        'WMI'      = @{
-            'LastBootTime' = @{
-                "CLASS_Name" = 'Win32_OperatingSystem'
-                "Property"   = @("LastBootUpTime")
-                "Filter"     = ""
-            }
+New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 40 -Force -Scope Script -Option ReadOnly
+New-Variable -Name "CREDENTIAL" -Value $(Get-CredentialFromJenkins) -Force -Scope Script -Option ReadOnly
+New-Variable -Name 'INPUT_HASH' -Value  @{
+    'Registry' = @{
+        "FastStart" = @{
+            "RegistryPath" = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power"
+            "Property"     = @("HiberbootEnabled")
         }
     }
-    $Credentials = Get-CredentialFromJenkins
+    'WMI'      = @{
+        'LastBootTime' = @{
+            "CLASS_Name" = 'Win32_OperatingSystem'
+            "Property"   = @("LastBootUpTime")
+            "Filter"     = ""
+        }
+    }
+} -Force -Scope Script -Option ReadOnly
+
+function Invoke-Main {
     Get-BootInformationAsJob
     Get-BootInformationFromJob
 }
@@ -33,11 +34,11 @@ function Get-BootInformationAsJob {
         Start-Job -Name "$($C.DNSHostName)" -ScriptBlock {
             param(
                 $ComputerName,
-                [PSCredential] $Credentials,
+                [PSCredential] $CREDENTIAL,
                 $InputHash
             )
             # Collect data from WMI
-            $Output = Invoke-Command -ComputerName $ComputerName -Credential $Credentials -ScriptBlock {
+            $Output = Invoke-Command -ComputerName $ComputerName -Credential $CREDENTIAL -ScriptBlock {
                 param(
                     $InputHash
                 )
@@ -78,7 +79,7 @@ function Get-BootInformationAsJob {
                 return $Output
             } -ArgumentList $InputHash
             return $Output
-        } -ArgumentList $($C.DNSHostName), $Credentials, $InputHash | Out-Null
+        } -ArgumentList $($C.DNSHostName), $CREDENTIAL, $INPUT_HASH | Out-Null
     }
 }
 function Get-BootInformationFromJob {
@@ -114,7 +115,7 @@ function Get-BootInformationFromJob {
                 }
             }
             $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName "OperatingSystem"
-            Invoke-SQLquery -Query $updateQuery -Credential $Credentials 
+            Invoke-SQLquery -Query $updateQuery -Credential $CREDENTIAL 
             Remove-Job -Name $jobName
         }
     }

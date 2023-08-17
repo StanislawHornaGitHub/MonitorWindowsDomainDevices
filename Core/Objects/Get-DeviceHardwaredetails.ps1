@@ -6,33 +6,33 @@ Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 
 New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 40 -Force -Scope Script -Option ReadOnly
-New-Variable -Name "DEVICE_PROPERTIES_TABLE" -Value "$ROOT_DIRECTORY/Object/Device_Hardware_details.csv" -Force -Scope Script -Option ReadOnly
-function Invoke-Main {
-    $InputHash = @{
-        "CPU"    = @{
-            "CLASS_Name" = 'Win32_Processor'
-            "Property"   = @("Name", "NumberOfCores", "NumberOfLogicalProcessors")
-            "Filter"     = ""
-        }
-        "Device" = @{
-            "CLASS_Name" = "Win32_ComputerSystem"
-            "Property"   = @("Manufacturer", "Model")
-            "Filter"     = ""
-        }
-        "RAM"    = @{
-            "CLASS_Name" = "Win32_PhysicalMemory"
-            "Property"   = @("Capacity", "ConfiguredClockSpeed", "Manufacturer")
-            "Filter"     = ""
-        }
-        "Drive"  = @{
-            "CLASS_Name" = "Win32_DiskDrive"
-            "Property"   = @("Caption", "Size")
-            "Filter"     = ""
-        }
+New-Variable -Name "CREDENTIAL" -Value $(Get-CredentialFromJenkins) -Force -Scope Script -Option ReadOnly
+New-Variable -Name 'INPUT_HASH' -Value @{
+    "CPU"    = @{
+        "CLASS_Name" = 'Win32_Processor'
+        "Property"   = @("Name", "NumberOfCores", "NumberOfLogicalProcessors")
+        "Filter"     = ""
     }
+    "Device" = @{
+        "CLASS_Name" = "Win32_ComputerSystem"
+        "Property"   = @("Manufacturer", "Model")
+        "Filter"     = ""
+    }
+    "RAM"    = @{
+        "CLASS_Name" = "Win32_PhysicalMemory"
+        "Property"   = @("Capacity", "ConfiguredClockSpeed", "Manufacturer")
+        "Filter"     = ""
+    }
+    "Drive"  = @{
+        "CLASS_Name" = "Win32_DiskDrive"
+        "Property"   = @("Caption", "Size")
+        "Filter"     = ""
+    }
+} -Force -Scope Script -Option ReadOnly
+
+function Invoke-Main {
     try {
-        $Credentials = Get-CredentialFromJenkins
-        Get-WMIDataAsJob -Credentials $Credentials -InputHash $InputHash
+        Get-WMIDataAsJob -Credentials $CREDENTIAL -InputHash $INPUT_HASH
         Get-DeviceDetails
     }
     catch {
@@ -62,11 +62,11 @@ function Get-DeviceDetails {
                 'NumberOfCores'             = 0
                 'NumberOfLogicalProcessors' = 0
                 'NumberOfRAMBanks'          = 0
-                'RAMCapacity_GB'          = 0
-                'RAMSpeed_MHz'            = ""
+                'RAMCapacity_GB'            = 0
+                'RAMSpeed_MHz'              = ""
                 'RAMmanufacturer'           = ""
                 'DiskName'                  = ""
-                'StorageCapacity_GB'      = 0
+                'StorageCapacity_GB'        = 0
             }
             $success = $false
             try {
@@ -88,7 +88,7 @@ function Get-DeviceDetails {
                 }
             }
             $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName "Hardware"
-            Invoke-SQLquery -Query $updateQuery -Credential $Credentials   
+            Invoke-SQLquery -Query $updateQuery -Credential $CREDENTIAL   
             Remove-Job -Name $jobName
         }
     }

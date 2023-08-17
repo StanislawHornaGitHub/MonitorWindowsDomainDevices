@@ -7,18 +7,17 @@ New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 
 
 New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 40 -Force -Scope Script -Option ReadOnly
-New-Variable -Name "STORAGE_PROPERTIES_TABLE" -Value "$ROOT_DIRECTORY/Object/Volume_Space.csv" -Force -Scope Script -Option ReadOnly
-function Invoke-Main {
-    $InputHash = @{
-        "Volumes" = @{
-            "CLASS_Name" = "Win32_Volume"
-            "Property"   = @("Caption", "FileSystem", "Capacity", "FreeSpace")
-            "Filter"     = "Caption like '%:%' AND (FileSystem like 'NTFS' OR FileSystem like 'REFS')"
-        }
+New-Variable -Name "CREDENTIAL" -Value $(Get-CredentialFromJenkins) -Force -Scope Script -Option ReadOnly
+New-Variable -Name 'INPUT_HASH' -Value  @{
+    "Volumes" = @{
+        "CLASS_Name" = "Win32_Volume"
+        "Property"   = @("Caption", "FileSystem", "Capacity", "FreeSpace")
+        "Filter"     = "Caption like '%:%' AND (FileSystem like 'NTFS' OR FileSystem like 'REFS')"
     }
+} -Force -Scope Script -Option ReadOnly
+function Invoke-Main {
     try {
-        $Credentials = Get-CredentialFromJenkins
-        Get-WMIDataAsJob -Credentials $Credentials -InputHash $InputHash
+        Get-WMIDataAsJob -Credentials $CREDENTIAL -InputHash $INPUT_HASH
         Get-VolumeDetails
     }
     catch {
@@ -66,7 +65,7 @@ function Get-VolumeDetails {
                 }
             }
             $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName "Storage"
-            Invoke-SQLquery -Query $updateQuery -Credential $Credentials 
+            Invoke-SQLquery -Query $updateQuery -Credential $CREDENTIAL 
             Remove-Job -Name $jobName
         }
     }

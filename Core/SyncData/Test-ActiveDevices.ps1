@@ -4,21 +4,31 @@
 
 #>
 Import-Module "./Core/Import-AllModules.psm1"
+New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 
 New-Variable -Name "PING_TIMEOUT" -Value 50 -Force -Scope Script -Option ReadOnly
+New-Variable -Name "CREDENTIAL" -Value $(Get-CredentialFromJenkins) -Force -Scope Script -Option ReadOnly
+New-Variable -Name "COMPUTER" -Value $(Get-ComputerListToProcess) -Force -Scope Script -Option ReadOnly
 function Invoke-Main {
-    $Credentials = Get-CredentialFromJenkins
-    $Computer = Get-ComputerListToProcess
-    Test-Computers
+    try {
+        Test-ComputersViaPing
+    }
+    catch {
+        Write-Error -Message $_.Exception.Message
+        $EXIT_CODE = 1
+    }
+    finally {
+        exit $EXIT_CODE
+    }
 }
-function Test-Computers {
+function Test-ComputersViaPing {
     $UpdateIsActiveQueryTemplate = Get-Content -Path "$SQL_QUERIES_DIRECTORY/UpdateIsActive.sql"
-    for ($i = 0; $i -lt $Computer.Count; $i++) {
-        $IP = $Computer[$i].IPaddress
+    for ($i = 0; $i -lt $COMPUTER.Count; $i++) {
+        $IP = $COMPUTER[$i].IPaddress
         if ((Invoke-Ping -IPaddress $IP).PingSucceded -eq $false) {
-            $Hostname = $Computer[$i].DNSHostName
+            $Hostname = $COMPUTER[$i].DNSHostName
             $QueryToInvoke = $UpdateIsActiveQueryTemplate.Replace("COMPUTER_DNS_HOSTNAME_VARIABLE", $Hostname)
-            Invoke-SQLquery -Query $QueryToInvoke -Credential $Credentials
+            Invoke-SQLquery -Query $QueryToInvoke -Credential $CREDENTIAL
         }
     }
 }

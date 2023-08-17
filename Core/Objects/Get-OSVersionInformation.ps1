@@ -7,31 +7,30 @@ New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 
 
 New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 40 -Force -Scope Script -Option ReadOnly
-
-
-function Invoke-Main {
-    $InputHash = @{
-        'Registry' = @{
-            "OS" = @{
-                "RegistryPath" = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
-                "Property"     = @('ReleaseID', 'DisplayVersion', 'UBR')
-            }
-        }
-        'WMI'      = @{
-            "OS"      = @{
-                "CLASS_Name" = 'Win32_OperatingSystem'
-                "Property"   = @("Caption", "Version", "OSArchitecture")
-                "Filter"     = ""
-            }
-            "License" = @{
-                "CLASS_Name" = "SoftwareLicensingProduct"
-                "Property"   = @("LicenseStatus", "PartialProductKey")
-                "Filter"     = "Name like 'Windows%'"
-            }
+New-Variable -Name "CREDENTIAL" -Value $(Get-CredentialFromJenkins) -Force -Scope Script -Option ReadOnly
+New-Variable -Name 'INPUT_HASH' -Value @{
+    'Registry' = @{
+        "OS" = @{
+            "RegistryPath" = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+            "Property"     = @('ReleaseID', 'DisplayVersion', 'UBR')
         }
     }
+    'WMI'      = @{
+        "OS"      = @{
+            "CLASS_Name" = 'Win32_OperatingSystem'
+            "Property"   = @("Caption", "Version", "OSArchitecture")
+            "Filter"     = ""
+        }
+        "License" = @{
+            "CLASS_Name" = "SoftwareLicensingProduct"
+            "Property"   = @("LicenseStatus", "PartialProductKey")
+            "Filter"     = "Name like 'Windows%'"
+        }
+    }
+} -Force -Scope Script -Option ReadOnly
+
+function Invoke-Main {
     try {
-        $Credentials = Get-CredentialFromJenkins
         Get-OSVersionAsJob
         Get-WindowsVersionFromJob
     }
@@ -91,7 +90,7 @@ function Get-OSVersionAsJob {
                 return $Output
             } -ArgumentList $InputHash
             return $Output
-        } -ArgumentList $($C.DNSHostName), $Credentials, $InputHash | Out-Null
+        } -ArgumentList $($C.DNSHostName), $CREDENTIAL, $INPUT_HASH | Out-Null
     }
 }
 function Get-WindowsVersionFromJob {
@@ -140,7 +139,7 @@ function Get-WindowsVersionFromJob {
                 }
             }
             $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName "OperatingSystem"
-            Invoke-SQLquery -Query $updateQuery -Credential $Credentials 
+            Invoke-SQLquery -Query $updateQuery -Credential $CREDENTIAL
             Remove-Job -Name $jobName
         }
     }

@@ -4,25 +4,24 @@
 
 #>
 Import-Module "./Core/Import-AllModules.psm1"
+New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 
 New-Variable -Name "DNS_SERVER_NAME" -Value "pfsense" -Force -Scope Script -Option ReadOnly
 New-Variable -Name "PING_TIMEOUT" -Value 50 -Force -Scope Script -Option ReadOnly
 New-Variable -Name "TEST_PS_REMOTING_TIMEOUT" -Value 50 -Scope Script -Option ReadOnly
-
+New-Variable -Name "CREDENTIAL" -Value $(Get-CredentialFromJenkins) -Force -Scope Script -Option ReadOnly
 
 function Invoke-Main {
-    $ExitCode = 0
     try {
-        $Credentials = Get-CredentialFromJenkins
-        $Computer = Get-ComputerList
+        Get-ComputerList
         Get-ComputerIsActive
     }
     catch {
         Write-Error -Message $_.Exception.Message
-        $ExitCode = 1
+        $EXIT_CODE = 1
     }
     finally {
-        exit $ExitCode
+        exit $EXIT_CODE
     }
 }
 
@@ -30,7 +29,7 @@ function Get-ComputerList {
    
     try {
         # Get list of all devices joined to AD Domian
-        $Computer = Get-ADComputer -Filter * -Credential $credentials -ErrorAction Stop   
+        $Computer = Get-ADComputer -Filter * -Credential $CREDENTIAL -ErrorAction Stop   
         $Computer = $Computer | Where-Object {$_.DNSHostName -notin $DEVICES_RUNNING_OTHER_OS_THAN_WIN}
     }
     catch {
@@ -40,7 +39,7 @@ function Get-ComputerList {
         # Filter the list to get only enable accounts
         $Computer = $Computer | Where-Object { $_.Enabled -eq $true }
     }
-    return $Computer
+    $Script:Computer = $Computer
 }
 
 function Get-ComputerIsActive {
@@ -93,7 +92,7 @@ function Get-ComputerIsActive {
         }
         # Add device entry to the main loop
         $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName "Inventory"
-        Invoke-SQLquery -Query $updateQuery -Credential $Credentials
+        Invoke-SQLquery -Query $updateQuery -Credential $CREDENTIAL
     }    
 }
 function Invoke-Ping {
@@ -122,7 +121,7 @@ function Test-PSRemotingServices {
     )
     try {
         # Invoke command remotely to verify if PS Remoting is active
-        Invoke-Command -ComputerName $ComputerName -Credential $credentials -ScriptBlock {
+        Invoke-Command -ComputerName $ComputerName -Credential $CREDENTIAL -ScriptBlock {
             Get-Service -Name WinRM, RpcSs
         } -AsJob -JobName $ComputerName | Out-Null
     }
