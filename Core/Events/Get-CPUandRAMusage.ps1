@@ -63,10 +63,18 @@ function Get-RecourceConsumption {
                     $Entry.RAM_Usage_Percentage /= $($Output.'RAM'.TotalVisibleMemorySize)
                     $Entry.RAM_Usage_Percentage *= 100
                     $Entry.RAM_Usage_Percentage = [math]::Round($($Entry.RAM_Usage_Percentage), 0)
-                    $Entry.CPU_Load_Percentage = $Output.'CPU'.LoadPercentage
+                    if($($Output.'CPU'.LoadPercentage).count -gt 1){
+                        $Avg = 0
+                        $Output.'CPU'.LoadPercentage | ForEach-Object {$Avg += $_}
+                        $Avg /= $($Output.'CPU'.LoadPercentage).Count
+                        $Entry.CPU_Load_Percentage = [math]::Round($Avg,0)
+                    }else {
+                        $Entry.CPU_Load_Percentage = $Output.'CPU'.LoadPercentage
+                    }
+                    
                 }
             }
-            $insertQuery = Get-SQLinsertSection -Entry $Entry -TableName "ResourceConsumption"
+            $insertQuery = Get-SQLinsertSection -Entry $Entry -TableName "ResourceConsumption_OLD"
             Invoke-SQLquery -Query $insertQuery -Credential $CREDENTIAL   
             Remove-Job -Name $jobName
         }

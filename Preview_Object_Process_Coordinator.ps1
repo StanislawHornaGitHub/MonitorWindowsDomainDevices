@@ -7,7 +7,6 @@ Import-Module "./Core/Import-AllModules.psm1"
 
 function Invoke-Main {
     $Timer = [System.Diagnostics.Stopwatch]::StartNew()
-    New-FolderStructure
     Get-DeviceInventoryToMonitor
     Invoke-ObjectScripts
     Wait-StartedScripts
@@ -30,9 +29,7 @@ function Wait-StartedScripts {
     }
     
 }
-function New-FolderStructure {
-    & ".\Core\New-FolderStructure.ps1"
-}
+
 function Get-DeviceInventoryToMonitor {
     & ".\Core\SyncData\Get-DeviceInventoryToMonitor.ps1"
     Get-Job | Remove-Job -Force

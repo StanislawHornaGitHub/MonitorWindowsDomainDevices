@@ -3,3 +3,5 @@ test.ps1
 .DS_Store
 *.config.json
 SQL-test.ps1
+counters.txt
+log.txt

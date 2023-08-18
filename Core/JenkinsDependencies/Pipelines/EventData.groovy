@@ -11,6 +11,8 @@ pipeline {
             steps {
                 parallel CPUandRAM: {
                     build 'Get-CPUandRAMusage'
+                }, PerformanceCounters: {
+                    build 'Get-PerformanceCounters'
                 }
             }
         }
