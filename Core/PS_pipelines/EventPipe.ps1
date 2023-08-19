@@ -3,18 +3,22 @@
     Script to run scripts gathering object data
 #>
 Import-Module "./Core/Import-AllModules.psm1"
-New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
+New-Variable -Name "PIPE_NAME" -Value $(($MyInvocation).MyCommand.Name) -Force -Scope Global -Option ReadOnly
+New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Global
+New-Variable -Name "TIMER" -Value $([System.Diagnostics.Stopwatch]::StartNew()) -Force -Scope Global
 
 function Invoke-Main {
-    $Timer = [System.Diagnostics.Stopwatch]::StartNew()
-    "$((Get-Date).ToString("yyyy-MM-dd HH:mm:ss")) Event Pipe started" | Out-File -FilePath ./log.txt -Append
-    & ".\Core\SyncData\Test-ActiveDevices.ps1"
-    "$($Timer.Elapsed.ToString("hh\:mm\:ss\.fff")) - Test-DevicesActive" | Out-File -FilePath ./log.txt -Append
+    Write-MainLog
+    Test-DevicesActive
     Start-ObjectJobs
     Wait-ObjectJobs
-    "$($Timer.Elapsed.ToString("hh\:mm\:ss\.fff")) - Execution Completed" | Out-File -FilePath ./log.txt -Append
+    Write-MainLog -Completed
 }
 
+function Test-DevicesActive {
+    & ".\Core\SyncData\Test-ActiveDevices.ps1"
+    Write-MainLog -Message "Test-DevicesActive"
+}
 function Start-ObjectJobs {
     $scripts = Get-ChildItem ".\Core\Events"
     foreach ($S in $scripts) {
@@ -29,8 +33,7 @@ function Wait-ObjectJobs {
         $jobName = $null
         $jobName = (Get-Job | Where-Object { $_.State -ne "Running" } | Select-Object -First 1).Name
         if ($null -ne $jobName) {
-            "$($Timer.Elapsed.ToString("hh\:mm\:ss\.fff")) - $jobname" | Out-File -FilePath ./log.txt -Append
-            Write-Host "$($Timer.Elapsed.ToString("hh\:mm\:ss\.fff")) - $jobname"
+            Write-MainLog -Message $jobname
             Receive-Job $jobName
             Remove-Job -Name $jobName
             Write-Host "`n"
