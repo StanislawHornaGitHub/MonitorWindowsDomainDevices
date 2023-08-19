@@ -6,7 +6,7 @@
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 
-New-Variable -Name "PING_TIMEOUT" -Value 50 -Force -Scope Script -Option ReadOnly
+New-Variable -Name "PING_TIMEOUT" -Value 100 -Force -Scope Script -Option ReadOnly
 New-Variable -Name "CREDENTIAL" -Value $(Get-CredentialFromJenkins) -Force -Scope Script -Option ReadOnly
 New-Variable -Name "COMPUTER" -Value $(Get-ComputerListToProcess) -Force -Scope Script -Option ReadOnly
 function Invoke-Main {

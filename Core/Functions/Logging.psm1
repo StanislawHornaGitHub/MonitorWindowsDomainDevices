@@ -8,7 +8,8 @@ function Write-MainLog {
     }
     else {
         if ($Completed) {
-            $logLine = "$((Get-Date).ToString("yyyy-MM-dd HH:mm:ss")) _ $PIPE_NAME finished, ExitCode: $EXIT_CODE, took $($TIMER.Elapsed.Seconds) seconds"
+            $numOfDevices = $(Get-ComputerListToProcess).count
+            $logLine = "$((Get-Date).ToString("yyyy-MM-dd HH:mm:ss")) _ $PIPE_NAME finished, ExitCode: $EXIT_CODE, Processed devices: $numOfDevices, took: $($TIMER.Elapsed.Seconds) seconds"
             $logLine | Out-File -FilePath $MAIN_LOG_PATH -Append
             $logLine | Out-File -FilePath $(Get-PipeLogName) -Append
         }
