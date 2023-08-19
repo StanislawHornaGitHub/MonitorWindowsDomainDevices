@@ -2,6 +2,7 @@
 ## Import Modules SECTION ##
 ############################
 Import-Module .\Core\JenkinsDependencies\Jenkins.psm1
+Import-Module .\Core\Functions\Logging.psm1
 Import-Module .\Core\SQL\Module\SQL.psm1
 
 ##########################
