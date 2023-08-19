@@ -171,9 +171,14 @@ function Get-DiskDetails {
         $Entry,
         $Output
     )
-    $Entry.'DiskName' = $Output.Drive[0].Caption
-    for ($i = 1; $i -lt ($Output.Drive).Count; $i++) {
-        $Entry.'DiskName' += ";$($Output.Drive[0].Caption)"
+    $Disks = $Output.Drive.Caption | Sort-Object -Unique
+    if ($Disks.count -gt 1) {
+        $Entry.'DiskName' = [string]$Disks[0]
+        for ($i = 1; $i -lt $Disks.Count; $i++) {
+            $Entry.'DiskName' += ";$($Disks[$i])"
+        }
+    }else{
+        $Entry.'DiskName' = $Disks
     }
     $Output.Drive | ForEach-Object { $Entry.'StorageCapacity_GB' += ($_.Size / 1GB) }
     $Entry.'StorageCapacity_GB' = [math]::Round($($Entry.'StorageCapacity_GB'), 0)
