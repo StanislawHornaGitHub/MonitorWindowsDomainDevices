@@ -1,6 +1,6 @@
 <#
     .DESCRIPTION
-    Script to get Boot details
+    Script to get CPU and RAM usage from WMI
 #>
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script

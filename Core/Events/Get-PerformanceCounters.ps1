@@ -102,7 +102,7 @@ function Get-PerformanceCountersFromJob {
                     $Entry.Disk_time_Percentage = $( Get-DiskTimePercentage -ValueFromDevice $($Output.'200'))
                     $Entry.Network_Total_Mbps = $(Get-NetworkTotalMbps -ValueFromDevice $($Output.'388'))
                     $Entry.TimeStamp = $TimeStamp
-                    $Entry
+
                     $insertQuery = Get-SQLinsertSection -Entry $Entry -TableName "PerformanceCounters"
                     Invoke-SQLquery -Query $insertQuery -Credential $CREDENTIAL
                 }
