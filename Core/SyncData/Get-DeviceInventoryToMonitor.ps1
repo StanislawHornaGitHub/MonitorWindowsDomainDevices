@@ -58,10 +58,9 @@ function Get-ComputerIsActive {
             'LastSeen'      = $null
             'Error'         = ""
         }
-
+        # Get IP address of the device from defined server
         try {
-            # Get IP address of the device from defined server
-            $Entry.IPAddress = $(Resolve-DnsName -Name $($C.DNSHostName) `
+            $Entry.IPAddress = $(Resolve-DnsName -Name $($Entry.DNSHostName) `
                     -Server $DNS_SERVER_NAME `
                     -Type A `
                     -NoHostsFile `
@@ -82,12 +81,9 @@ function Get-ComputerIsActive {
             Invoke-SQLUpdate -Entry $Entry -CREDENTIAL $CREDENTIAL
             continue
         }
-
-        
         # If ping was successfull try to test PS Remoting
-
         try {
-            $Entry.isActiveWinRM = Test-PSRemotingServices -ComputerName $($C.DNSHostName) -ErrorAction Stop
+            $Entry.isActiveWinRM = Test-PSRemotingServices -ComputerName $($Entry.DNSHostName) -ErrorAction Stop
         }
         catch {
             $Entry.Error += "$($_.Exception.Message)`n"
@@ -168,7 +164,7 @@ function Test-PSRemotingServices {
         # List services with statuses and throw as an error
         $Message = ""
         foreach ($s in $notRunningServices) {
-            $Message += "$($s.Name) $($s.Status) ; "
+            $Message += "$($s.Name) $($s.Status)`n"
         }
         throw $Message
     }
