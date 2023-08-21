@@ -8,7 +8,7 @@ New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 
 New-Variable -Name "DNS_SERVER_NAME" -Value "pfsense" -Force -Scope Script -Option ReadOnly
 New-Variable -Name "PING_TIMEOUT" -Value 50 -Force -Scope Script -Option ReadOnly
-New-Variable -Name "TEST_PS_REMOTING_TIMEOUT" -Value 50 -Scope Script -Option ReadOnly
+New-Variable -Name "TEST_PS_REMOTING_TIMEOUT" -Value 10 -Scope Script -Option ReadOnly
 New-Variable -Name "CREDENTIAL" -Value $(Get-CredentialFromJenkins) -Force -Scope Script -Option ReadOnly
 
 function Invoke-Main {
@@ -30,7 +30,7 @@ function Get-ComputerList {
     try {
         # Get list of all devices joined to AD Domian
         $Computer = Get-ADComputer -Filter * -Credential $CREDENTIAL -ErrorAction Stop   
-        $Computer = $Computer | Where-Object {$_.DNSHostName -notin $DEVICES_RUNNING_OTHER_OS_THAN_WIN}
+        $Computer = $Computer | Where-Object { $_.DNSHostName -notin $DEVICES_RUNNING_OTHER_OS_THAN_WIN }
     }
     catch {
         throw $_.Exception.Message
@@ -49,7 +49,7 @@ function Get-ComputerIsActive {
     foreach ($C in $Computer) {
         # Declare entry for the device
         $Entry = [PSCustomObject]@{
-            'DNSHostName'   = ""
+            'DNSHostName'   = $($C.DNSHostName)
             'IPaddress'     = $null
             'isActiveWinRM' = $false
             'isActiveTCP'   = $false
@@ -58,7 +58,7 @@ function Get-ComputerIsActive {
             'LastSeen'      = $null
             'Error'         = ""
         }
-        $Entry.DNSHostName = $C.DNSHostName
+
         try {
             # Get IP address of the device from defined server
             $Entry.IPAddress = $(Resolve-DnsName -Name $($C.DNSHostName) `
@@ -68,32 +68,45 @@ function Get-ComputerIsActive {
                     -ErrorAction Stop | Select-Object -First 1).IPAddress
         }
         catch {
-            $Entry.Error += "$($_.Exception.Message) ; "
+            $Entry.Error += "$($_.Exception.Message)`n"
+            Invoke-SQLUpdate -Entry $Entry -CREDENTIAL $CREDENTIAL
+            continue
         }
         # If DNS server was able to resolve the name try to ping it
-        if ($null -ne $($Entry.IPaddress)) {
+        try {
             $ping = Invoke-Ping -IPaddress $($Entry.IPAddress) 
             $Entry.isActiveTCP = $ping.PingSucceded
-            $Entry.Error += $Ping.Error
         }
+        catch {
+            $Entry.Error += "$_`n"
+            Invoke-SQLUpdate -Entry $Entry -CREDENTIAL $CREDENTIAL
+            continue
+        }
+
+        
         # If ping was successfull try to test PS Remoting
-        if ($Entry.isActiveTCP -eq $true) {
-            try {
-                $Entry.isActiveWinRM = Test-PSRemotingServices -ComputerName $($C.DNSHostName) -ErrorAction Stop
-            }
-            catch {
-                $Entry.Error += "$($_.Exception.Message) ; "
-            }
+
+        try {
+            $Entry.isActiveWinRM = Test-PSRemotingServices -ComputerName $($C.DNSHostName) -ErrorAction Stop
         }
-        # PS Remoting worked, ping worked - device is active
-        if (($Entry.isActiveWinRM -eq $true)) {
-            $Entry.LastSeen = $LastUpdate
-            $Entry.isActive = $true
+        catch {
+            $Entry.Error += "$($_.Exception.Message)`n"
+            Invoke-SQLUpdate -Entry $Entry -CREDENTIAL $CREDENTIAL
+            continue
         }
-        # Add device entry to the main loop
-        $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName "Inventory"
-        Invoke-SQLquery -Query $updateQuery -Credential $CREDENTIAL
+        
+        $Entry.LastSeen = $LastUpdate
+        $Entry.isActive = $true
+        Invoke-SQLUpdate -Entry $Entry -CREDENTIAL $CREDENTIAL
     }    
+}
+function Invoke-SQLUpdate {
+    param (
+        $Entry,
+        [PSCredential] $CREDENTIAL
+    )
+    $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName "Inventory"
+    Invoke-SQLquery -Query $updateQuery -Credential $CREDENTIAL
 }
 function Invoke-Ping {
     param (
@@ -110,6 +123,7 @@ function Invoke-Ping {
         $PingResult.PingSucceded = $true
     }
     else {
+        throw "$($Ping[2])" 
         $PingResult.Error = "$($Ping[2]) ; "   
     }
     return $PingResult
@@ -119,6 +133,12 @@ function Test-PSRemotingServices {
     param (
         $ComputerName
     )
+    try {
+        (Test-WSMan -ComputerName $ComputerName -ErrorAction Stop) | Out-Null
+    }   
+    catch {
+        throw $_.Exception.Message
+    }
     try {
         # Invoke command remotely to verify if PS Remoting is active
         Invoke-Command -ComputerName $ComputerName -Credential $CREDENTIAL -ScriptBlock {
