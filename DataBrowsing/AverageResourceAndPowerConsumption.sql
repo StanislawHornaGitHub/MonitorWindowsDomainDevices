@@ -5,7 +5,9 @@ SELECT
     ROUND(AVG(RAM_usage_Percentage),1,1) AS 'RAM usage %',
     ROUND(AVG(Disk_time_Percentage),1,1) AS 'Disk usage %',
     ROUND(AVG(Network_Total_Mbps),3,1) AS 'Network Traffic Mbps',
+    ROUND(AVG(PowerAndTemperature.CPU_Temperature_Max),1,1) AS 'CPU Temperature C',
     ROUND(AVG(PowerAndTemperature.PowerConsumption_MAX),1,1) AS 'PowerConsumption W'
+
 FROM Hardware
 LEFT JOIN PowerAndTemperature 
     On Hardware.DNSHostName = PowerAndTemperature.DNSHostName
