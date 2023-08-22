@@ -10,12 +10,20 @@ New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 40 -Force -Scope S
 New-Variable -Name "CREDENTIAL" -Value $(Get-CredentialFromJenkins) -Force -Scope Script -Option ReadOnly
 
 function Invoke-Main {
-    Get-OpenHardwareMonitorAsJob
-    Get-OpenHardwareMonitorFromJob
-
+    try {
+        Get-OpenHardwareMonitorAsJob
+        Get-OpenHardwareMonitorFromJob
+    }
+    catch {
+        Write-Error -Message $_.Exception.Message
+        $EXIT_CODE = 1
+    }
+    finally {
+        exit $EXIT_CODE
+    }
 }
 function Get-OpenHardwareMonitorAsJob {
-    $Computer = Get-ComputerListToProcess -PredefinedQuery 
+    $Computer = Get-ComputerListToProcess -PredefinedQuery "DevicesWithOpenHardwareMonitor.sql"
     foreach ($C in $Computer) {
         Start-Job -Name "$($C.DNSHostName)" -ScriptBlock {
             param(
@@ -32,7 +40,7 @@ function Get-OpenHardwareMonitorAsJob {
                     'Temperature' = $null
                     'Power'       = $null
                 }
-                if(-not (Test-Path -Path "$OPEN_HARDWARE_MONITOR_PATH\OpenHardwareMonitorReport.exe")){
+                if (-not (Test-Path -Path "$OPEN_HARDWARE_MONITOR_PATH\OpenHardwareMonitorReport.exe")) {
                     return $null
                 }
                 $Report = & "$OPEN_HARDWARE_MONITOR_PATH\OpenHardwareMonitorReport.exe"
@@ -86,19 +94,19 @@ function Get-OpenHardwareMonitorFromJob {
             }
             finally {
                 if ($success) {
-                    if($null -eq $Output){
+                    if ($null -eq $Output) {
                         Write-Host "$jobname is null"
-                    }else{
+                    }
+                    else {
                         $Entry.CPU_Temperature_Average = $Output.'Temperature'.Average
                         $Entry.CPU_Temperature_Min = $Output.'Temperature'.Minimum
                         $Entry.CPU_Temperature_Max = $Output.'Temperature'.Maximum
                         $Entry.PowerConsumption = $Output.'Power'.Sum
                         $Entry.TimeStamp = $TimeStamp
-                        $Entry
-                    }
 
-                    # $insertQuery = Get-SQLinsertSection -Entry $Entry -TableName 
-                    # Invoke-SQLquery -Query $insertQuery -Credential $CREDENTIAL
+                        $insertQuery = Get-SQLinsertSection -Entry $Entry -TableName "PowerAndTemperature"
+                        Invoke-SQLquery -Query $insertQuery -Credential $CREDENTIAL
+                    }
                 }
             }
             Remove-Job -Name $jobName
