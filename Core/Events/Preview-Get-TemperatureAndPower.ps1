@@ -15,7 +15,7 @@ function Invoke-Main {
 
 }
 function Get-OpenHardwareMonitorAsJob {
-    $Computer = Get-ComputerListToProcess
+    $Computer = Get-ComputerListToProcess -PredefinedQuery 
     foreach ($C in $Computer) {
         Start-Job -Name "$($C.DNSHostName)" -ScriptBlock {
             param(
