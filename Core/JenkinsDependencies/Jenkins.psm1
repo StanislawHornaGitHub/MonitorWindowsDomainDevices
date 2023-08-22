@@ -21,8 +21,11 @@ function Get-ComputerListToProcess {
     Function to get the list of devices which are active at the moment.
 
 #>
+    param(
+        $PredefinedQuery = "ActiveDevices.sql"
+    )
     try {
-        $Result = Invoke-SQLquery -FileQuery $SQL_ACTIVE_DEVICES_QUERY
+        $Result = Invoke-SQLquery -FileQuery "$SQL_QUERIES_DIRECTORY\$PredefinedQuery"
     }
     catch {
         throw $_.Exception.Message
@@ -189,7 +192,7 @@ function Get-RegistryDataAsJob {
                         try {
                             $Output.$D.Add($P, (Get-Item -path $($InputHash.$D.RegistryPath)`
                                         -ErrorAction Stop`
-                                        ).GetValue($P))
+                                ).GetValue($P))
                         }
                         catch {
                             throw $_.Exception.Message
