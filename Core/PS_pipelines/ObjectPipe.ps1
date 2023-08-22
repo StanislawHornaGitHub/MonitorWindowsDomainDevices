@@ -20,7 +20,7 @@ function Test-DevicesActive {
     Write-MainLog -Message "Test-DevicesActive"
 }
 function Start-ObjectJobs {
-    $scripts = Get-ChildItem ".\Core\Objects"
+    $scripts = Get-ChildItem ".\Core\Objects"  | Where-Object {$_.Name -notlike "Preview*"}
     foreach ($S in $scripts) {
         Start-Job -Name $S.Name `
             -InitializationScript { Set-Location $env:DEVICE_MONITORING_ROOT_DIRECTORY } `
