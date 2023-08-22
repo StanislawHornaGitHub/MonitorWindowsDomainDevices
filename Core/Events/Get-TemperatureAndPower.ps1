@@ -76,12 +76,12 @@ function Get-OpenHardwareMonitorFromJob {
         if ($null -ne $jobName) {
             Write-Host "Operations during timeout - $jobname"
             $Entry = [PSCustomObject]@{
-                'DNSHostName'             = $jobName
-                'TimeStamp'               = $null
-                'CPU_Temperature_Average' = $null
-                'CPU_Temperature_Min'     = $null
-                'CPU_Temperature_Max'     = $null
-                'PowerConsumption'        = $null
+                'DNSHostName'              = $jobName
+                'TimeStamp'                = $null
+                'CPU_Temperature_Current'  = $null
+                'CPU_Temperature_Min'      = $null
+                'CPU_Temperature_Max'      = $null
+                'PowerConsumption_Current' = $null
             }
             $success = $false
             try {
@@ -98,14 +98,15 @@ function Get-OpenHardwareMonitorFromJob {
                         Write-Host "$jobname is null"
                     }
                     else {
-                        $Entry.CPU_Temperature_Average = $Output.'Temperature'.Average
+                        $Entry.CPU_Temperature_Current = $Output.'Temperature'.Average
                         $Entry.CPU_Temperature_Min = $Output.'Temperature'.Minimum
                         $Entry.CPU_Temperature_Max = $Output.'Temperature'.Maximum
-                        $Entry.PowerConsumption = $Output.'Power'.Sum
+                        $Entry.PowerConsumption_Current = $Output.'Power'.Sum
                         $Entry.TimeStamp = $TimeStamp
-
-                        $insertQuery = Get-SQLinsertSection -Entry $Entry -TableName "PowerAndTemperature"
-                        Invoke-SQLquery -Query $insertQuery -Credential $CREDENTIAL
+                        if ($Entry.PowerConsumption_Current -ne 0) {
+                            $insertQuery = Get-SQLinsertSection -Entry $Entry -TableName "PowerAndTemperature"
+                            Invoke-SQLquery -Query $insertQuery -Credential $CREDENTIAL
+                        }
                     }
                 }
             }

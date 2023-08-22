@@ -20,7 +20,8 @@ New-Variable -Name "SQL_ACTIVE_DEVICES_QUERY" -Value "$SQL_QUERIES_DIRECTORY/Act
 ########################
 New-Variable -Name "DEPLOYMENT_SERVER_SHARE" -Value "\\Server-Automation\Files" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "LOCAL_MONITORING_COMPONENTS_PATH" -Value "C:\Program Files\Monitoring_Windows_Domain_Devices" -Force -Scope Global -Option ReadOnly
-New-Variable -Name "OPEN_HARDWARE_MONITOR_PATH" -Value "$LOCAL_MONITORING_COMPONENTS_PATH\OpenHardwareMonitor" -Force -Scope Global -Option ReadOnly
+New-Variable -Name "OPEN_HARDWARE_MONITOR_PATH" -Value "$LOCAL_MONITORING_COMPONENTS_PATH\OpenHardwareMonitorReport" -Force -Scope Global -Option ReadOnly
+New-Variable -Name "OPEN_HARDWARE_MONITOR_EXE" -Value "$LOCAL_MONITORING_COMPONENTS_PATH\OpenHardwareMonitor\OpenHardwareMonitor.exe" -Force -Scope Global -Option ReadOnly
 
 ###########################
 ## Env Variables Section ##
