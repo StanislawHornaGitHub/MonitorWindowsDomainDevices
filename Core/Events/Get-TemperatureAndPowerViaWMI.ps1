@@ -23,7 +23,7 @@ function Invoke-Main {
     }
 }
 function Get-OpenHardwareMonitorAsJob {
-    $Computer = Get-ComputerListToProcess -PredefinedQuery "DevicesWithOpenHardwareMonitor.sql"
+    $Computer = Get-ComputerListToProcess -PredefinedQuery "Preview_HardwareMonitor.sql"
     foreach ($C in $Computer) {
         Start-Job -Name "$($C.DNSHostName)" -ScriptBlock {
             param(
@@ -40,14 +40,14 @@ function Get-OpenHardwareMonitorAsJob {
                 )
                 $Output = @{
                     'Temperature' = @{
-                        'Current' = $null
-                        'Minimum' = $null
-                        'Maximum' = $null
+                        'Current' = 0
+                        'Minimum' = 0
+                        'Maximum' = 0
                     }
                     'Power'       = @{
-                        'Current' = $null
-                        'Minimum' = $null
-                        'Maximum' = $null
+                        'Current' = 0
+                        'Minimum' = 0
+                        'Maximum' = 0
                     }
                     'Status'      = $null
                 }
@@ -58,28 +58,33 @@ function Get-OpenHardwareMonitorAsJob {
                     Get-Process OpenHardwareMonitor | Stop-Process -Force -Confirm:$false
                 }
                 if ($null -eq $(Get-Process OpenHardwareMonitor -ErrorAction SilentlyContinue)) {
-                    ([WMICLASS]"\\localhost\ROOT\CIMV2:win32_process").Create("$OPEN_HARDWARE_MONITOR_EXE") | Out-Null
-                    # Start-Process $OPEN_HARDWARE_MONITOR_EXE
+                    Start-Process -FilePath $OPEN_HARDWARE_MONITOR_EXE -Verb RunAs
                     $Output.Status = "Process started"
-                    #return $Output
                 }
-                while ($CPUtemp.count -le 0) {
+                while ($Output.Power.Current -le 0 -or 
+                    $Output.Power.Minimum -le 0 -or 
+                    $Output.Power.Maximum -le 0 -or 
+                    $Output.Temperature.Current -le 0 -or
+                    $Output.Temperature.Minimum -le 0 -or
+                    $Output.Temperature.Maximum -le 0 ) {
+                    Start-Sleep -Seconds 1
                     $CPUtemp = Get-WmiObject -namespace "root/OpenHardwareMonitor" `
-                    -Class Sensor `
-                    -Property Name, SensorType, value, min, max, parent `
-                    -Filter "SensorType = 'Temperature' AND Name like '%CPU%'"
-                }
-                $Output.Temperature.Current = $($CPUtemp.value | Measure-Object -Average).Average
-                $Output.Temperature.Minimum = $($CPUtemp.min | Measure-Object -Average).Average
-                $Output.Temperature.Maximum = $($CPUtemp.max | Measure-Object -Average).Average
+                        -Class Sensor `
+                        -Property Name, SensorType, value, min, max, parent `
+                        -Filter "SensorType = 'Temperature' AND Name like '%CPU%'"
+                
+                    $Output.Temperature.Current = $($CPUtemp.value | Measure-Object -Average).Average
+                    $Output.Temperature.Minimum = $($CPUtemp.min | Measure-Object -Average).Average
+                    $Output.Temperature.Maximum = $($CPUtemp.max | Measure-Object -Average).Average
 
-                $Power = Get-WmiObject -namespace "root/OpenHardwareMonitor" `
-                    -Class Sensor `
-                    -Property Name, SensorType, value, min, max, parent `
-                    -Filter "SensorType = 'Power' AND NOT Name like '%Core%'"
-                $Output.Power.Current = $($Power.value | Measure-Object -Sum).Sum
-                $Output.Power.Minimum = $($Power.min | Measure-Object -Sum).Sum
-                $Output.Power.Maximum = $($Power.max | Measure-Object -Sum).Sum
+                    $Power = Get-WmiObject -namespace "root/OpenHardwareMonitor" `
+                        -Class Sensor `
+                        -Property Name, SensorType, value, min, max, parent `
+                        -Filter "SensorType = 'Power' AND NOT Name like '%Core%'"
+                    $Output.Power.Current = $($Power.value | Measure-Object -Sum).Sum
+                    $Output.Power.Minimum = $($Power.min | Measure-Object -Sum).Sum
+                    $Output.Power.Maximum = $($Power.max | Measure-Object -Sum).Sum
+                }
 
                 return $Output
             } -ArgumentList $OPEN_HARDWARE_MONITOR_PATH, $OPEN_HARDWARE_MONITOR_EXE
@@ -129,10 +134,8 @@ function Get-OpenHardwareMonitorFromJob {
                         $Entry.PowerConsumption_Max = $Output.'Power'.Maximum
                         $Entry.TimeStamp = $TimeStamp
 
-                        $Entry
-
-                        # $insertQuery = Get-SQLinsertSection -Entry $Entry -TableName "PowerAndTemperature"
-                        # Invoke-SQLquery -Query $insertQuery -Credential $CREDENTIAL
+                        $insertQuery = Get-SQLinsertSection -Entry $Entry -TableName "PowerAndTemperature"
+                        Invoke-SQLquery -Query $insertQuery -Credential $CREDENTIAL
                     }
                 }
             }
