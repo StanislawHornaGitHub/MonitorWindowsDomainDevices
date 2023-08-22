@@ -1,8 +1,10 @@
 SELECT
-    SUBSTRING(DNSHostName,1,(CHARINDEX('.',DNSHostName) - 1)) AS 'Name',
-    AVG(CPU_time_Percentage) AS 'CPU usage',
-    AVG(RAM_usage_Percentage) AS 'RAM usage',
-    AVG(Disk_time_Percentage) AS 'Disk usage',
-    AVG(Network_Total_Mbps) AS 'Network Traffic per s'
+    SUBSTRING(PerformanceCounters.DNSHostName,1,(CHARINDEX('.',PerformanceCounters.DNSHostName) - 1)) AS 'Name',
+    ROUND(AVG(CPU_time_Percentage),1,1)AS 'CPU usage %',
+    ROUND(AVG(RAM_usage_Percentage),1,1) AS 'RAM usage %',
+    ROUND(AVG(Disk_time_Percentage),1,1) AS 'Disk usage %',
+    ROUND(AVG(Network_Total_Mbps),3,1) AS 'Network Traffic Mbps',
+    Hardware.CPUmodel
 FROM PerformanceCounters
-GROUP BY DNSHostName
+LEFT JOIN Hardware On PerformanceCounters.DNSHostName = Hardware.DNSHostName
+GROUP BY PerformanceCounters.DNSHostName, Hardware.DNSHostName
