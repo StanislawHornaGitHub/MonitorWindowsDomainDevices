@@ -14,8 +14,8 @@ FROM Hardware
 LEFT JOIN 
 (SELECT 
     DNSHostName,
-    ROUND(AVG(CPU_Temperature_Max),1 ,1) AS 'CPU Temp C',
-    ROUND(AVG(PowerConsumption_Max),1 ,1) AS 'Power Consumption W'
+    ROUND(AVG(CPU_Temperature_Current),1 ,1) AS 'CPU Temp C',
+    ROUND(AVG(PowerConsumption_Current),1 ,1) AS 'Power Consumption W'
 FROM PowerAndTemperature
 GROUP BY DNSHostName) PowerAndTemp 
     On Hardware.DNSHostName = PowerAndTemp.DNSHostName
