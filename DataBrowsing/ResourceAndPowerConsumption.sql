@@ -1,3 +1,5 @@
+DECLARE @StartDate AS Date = '2023-08-23'
+DECLARE @EndDate AS Date = '2023-08-24'
 SELECT
     SUBSTRING(Hardware.DNSHostName,1,(CHARINDEX('.',Hardware.DNSHostName) - 1)) AS 'Name',
     DeviceModel,
@@ -17,6 +19,7 @@ LEFT JOIN
     ROUND(AVG(CPU_Temperature_Current),1 ,1) AS 'CPU Temp C',
     ROUND(AVG(PowerConsumption_Current),1 ,1) AS 'Power Consumption W'
 FROM PowerAndTemperature
+Where [TimeStamp] > @StartDate AND [TimeStamp] < @EndDate
 GROUP BY DNSHostName) PowerAndTemp 
     On Hardware.DNSHostName = PowerAndTemp.DNSHostName
 LEFT JOIN 
@@ -30,6 +33,7 @@ LEFT JOIN
     ROUND(AVG(NIC_Received_MBps),3,1) AS 'Network Received Mbps',
     ROUND(AVG(NIC_Sent_Mbps),3,1) AS 'Network Sent Mbps'
 FROM ResourceConsumption
+Where [TimeStamp] > @StartDate AND [TimeStamp] < @EndDate
 Group By DNSHostName) Load ON Load.DNSHostName = Hardware.DNSHostName
 GROUP BY 
 Hardware.DNSHostName,
