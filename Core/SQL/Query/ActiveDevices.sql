@@ -1,5 +1,7 @@
+DECLARE @DeviceIsActive AS BIT = 1
+
 SELECT
     DNSHostName,
     IPaddress 
 FROM Inventory
-WHERE isActive=1
+WHERE isActive = @DeviceIsActive

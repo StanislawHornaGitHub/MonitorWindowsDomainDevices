@@ -1,3 +1,8 @@
+DECLARE @HardwareMonitorIstDeployed AS BIT = 1
+DECLARE @DeviceIsActive AS BIT = 1
+
 SELECT DNSHostName, IPaddress
 FROM Inventory
-WHERE IsHardwareMonitorDeployed = 1 AND isActive = 1
+WHERE 
+IsHardwareMonitorDeployed = @HardwareMonitorIstDeployed AND 
+isActive = @DeviceIsActive
