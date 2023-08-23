@@ -49,7 +49,6 @@ function Get-OpenHardwareMonitorAsJob {
                         'Minimum' = 0
                         'Maximum' = 0
                     }
-                    'Status'      = $null
                 }
                 if (-not (Test-Path -Path $OPEN_HARDWARE_MONITOR_EXE)) {
                     return $null
@@ -59,7 +58,6 @@ function Get-OpenHardwareMonitorAsJob {
                 }
                 if ($null -eq $(Get-Process OpenHardwareMonitor -ErrorAction SilentlyContinue)) {
                     Start-Process -FilePath $OPEN_HARDWARE_MONITOR_EXE -Verb RunAs
-                    $Output.Status = "Process started"
                 }
                 while ($Output.Power.Current -le 0 -or 
                     $Output.Power.Minimum -le 0 -or 
@@ -113,7 +111,6 @@ function Get-OpenHardwareMonitorFromJob {
             $success = $false
             try {
                 $Output = Receive-Job -Name $jobName -ErrorAction Stop
-                $Output
                 $success = $true
             }
             catch {
