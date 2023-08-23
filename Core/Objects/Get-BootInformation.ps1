@@ -4,7 +4,7 @@
 #>
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
-
+New-Variable -Name "SQL_TABLE_TO_UPDATE" -Value "OperatingSystem" -Force -Scope Script -Option ReadOnly
 
 New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 60 -Force -Scope Script -Option ReadOnly
 New-Variable -Name "CREDENTIAL" -Value $(Get-CredentialFromJenkins) -Force -Scope Script -Option ReadOnly
@@ -114,7 +114,7 @@ function Get-BootInformationFromJob {
 
                 }
             }
-            $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName "OperatingSystem"
+            $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName $SQL_TABLE_TO_UPDATE
             Invoke-SQLquery -Query $updateQuery -Credential $CREDENTIAL 
             Remove-Job -Name $jobName
         }
