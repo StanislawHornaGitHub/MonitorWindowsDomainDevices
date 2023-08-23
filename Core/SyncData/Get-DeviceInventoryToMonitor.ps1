@@ -5,6 +5,8 @@
 #>
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
+New-Variable -Name "PIPE_NAME" -Value $(($MyInvocation).MyCommand.Name) -Force -Scope Global -Option ReadOnly
+New-Variable -Name "TIMER" -Value $([System.Diagnostics.Stopwatch]::StartNew()) -Force -Scope Global
 
 New-Variable -Name "DNS_SERVER_NAME" -Value "pfsense" -Force -Scope Script -Option ReadOnly
 New-Variable -Name "PING_TIMEOUT" -Value 50 -Force -Scope Script -Option ReadOnly
@@ -13,6 +15,7 @@ New-Variable -Name "CREDENTIAL" -Value $(Get-CredentialFromJenkins) -Force -Scop
 
 function Invoke-Main {
     try {
+        Write-MainLog
         Get-ComputerList
         Get-ComputerIsActive
     }
@@ -21,6 +24,7 @@ function Invoke-Main {
         $EXIT_CODE = 1
     }
     finally {
+        Write-MainLog -Completed
         exit $EXIT_CODE
     }
 }
@@ -40,6 +44,7 @@ function Get-ComputerList {
         $Computer = $Computer | Where-Object { $_.Enabled -eq $true }
     }
     $Script:Computer = $Computer
+    Write-MainLog -Message "Devices retrieved from ActiveDirectory"
 }
 
 function Get-ComputerIsActive {
@@ -101,6 +106,7 @@ function Invoke-SQLUpdate {
         $Entry,
         [PSCredential] $CREDENTIAL
     )
+    Write-Host "$($Entry | Select-Object DNSHostName, isActive)"
     $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName "Inventory"
     Invoke-SQLquery -Query $updateQuery -Credential $CREDENTIAL
 }
