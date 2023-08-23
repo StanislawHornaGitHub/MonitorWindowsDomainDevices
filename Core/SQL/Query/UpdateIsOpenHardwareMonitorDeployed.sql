@@ -1,3 +1,6 @@
+DECLARE @HardwareMonitorIsNotDeployed AS BIT = 0
+DECLARE @DeviceDNSHostnameToUpdate AS NVARCHAR(50) = 'COMPUTER_DNS_HOSTNAME_VARIABLE'
+
 UPDATE Inventory
-SET IsHardwareMonitorDeployed = 1
-WHERE DNSHostName = 'COMPUTER_DNS_HOSTNAME_VARIABLE';
+SET IsHardwareMonitorDeployed = @HardwareMonitorIsNotDeployed
+WHERE DNSHostName = @DeviceDNSHostnameToUpdate
