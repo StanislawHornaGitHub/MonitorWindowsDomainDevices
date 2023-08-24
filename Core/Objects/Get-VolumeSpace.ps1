@@ -87,7 +87,7 @@ function Get-SystemDriveDetails {
     $Entry.'SystemDriveCapacity_GB' = [math]::Round($($SystemDrive.Capacity / 1GB), 2)
     $Entry.'SystemDriveFreeSpace_GB' = [math]::Round($($SystemDrive.FreeSpace / 1GB), 2)
     $Entry.'SystemDriveUsed' = $(($SystemDrive.Capacity - $SystemDrive.FreeSpace) / $SystemDrive.Capacity)
-    $Entry.'SystemDriveUsed' = "$([math]::Round(($Entry.'SystemDriveUsed'), 2) * 100) %"
+    $Entry.'SystemDriveUsed' = $(($Entry.'SystemDriveUsed') * 100)
 
     return $Entry
 }
@@ -111,7 +111,7 @@ function Get-AllDrivesDetails {
     }
 
     $Entry.'AllDriveUsed' = $(($($Entry.'AllDriveCapacity_GB') - $($Entry.'AllDriveFreeSpace_GB')) / $($Entry.'AllDriveCapacity_GB'))
-    $Entry.'AllDriveUsed' = "$([math]::Round(($Entry.'AllDriveUsed' ), 2) * 100) %"
+    $Entry.'AllDriveUsed' = $(($Entry.'AllDriveUsed' ) * 100)
     
     $Entry.'AllDriveCapacity_GB' = [math]::Round($($Entry.'AllDriveCapacity_GB'), 2)
     $Entry.'AllDriveFreeSpace_GB' = [math]::Round($($Entry.'AllDriveFreeSpace_GB'), 2)
@@ -119,7 +119,7 @@ function Get-AllDrivesDetails {
     $Drives = $Output.Volumes | Where-Object { $_.Caption -ne "C:\" }
     $Drives | ForEach-Object {
         $Entry.'OtherDrivesDetails' += `
-            "$($_.Caption) - $([math]::Round(($_.Capacity / 1GB),2))GB - $([math]::Round(($_.FreeSpace / 1GB),2))GB" }
+            "$($_.Caption) - $([math]::Round(($_.Capacity / 1GB),2))GB - $([math]::Round(($_.FreeSpace / 1GB),2))GB`n" }
 
     return $Entry
 }
