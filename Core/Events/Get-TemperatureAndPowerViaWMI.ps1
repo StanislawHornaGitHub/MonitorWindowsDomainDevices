@@ -39,12 +39,17 @@ function Get-OpenHardwareMonitorAsJob {
                     $OPEN_HARDWARE_MONITOR_EXE
                 )
                 $Output = @{
-                    'Temperature' = @{
+                    'Temperature_CPU' = @{
                         'Current' = 0
                         'Minimum' = 0
                         'Maximum' = 0
                     }
-                    'Power'       = @{
+                    'Temperature_GPU' = @{
+                        'Current' = 0
+                        'Minimum' = 0
+                        'Maximum' = 0
+                    }
+                    'Power'           = @{
                         'Current' = 0
                         'Minimum' = 0
                         'Maximum' = 0
@@ -62,18 +67,26 @@ function Get-OpenHardwareMonitorAsJob {
                 while ($Output.Power.Current -le 0 -or 
                     $Output.Power.Minimum -le 0 -or 
                     $Output.Power.Maximum -le 0 -or 
-                    $Output.Temperature.Current -le 0 -or
-                    $Output.Temperature.Minimum -le 0 -or
-                    $Output.Temperature.Maximum -le 0 ) {
+                    $Output.Temperature_CPU.Current -le 0 -or
+                    $Output.Temperature_CPU.Minimum -le 0 -or
+                    $Output.Temperature_CPU.Maximum -le 0 ) {
+
                     Start-Sleep -Seconds 1
                     $CPUtemp = Get-WmiObject -namespace "root/OpenHardwareMonitor" `
                         -Class Sensor `
                         -Property Name, SensorType, value, min, max, parent `
                         -Filter "SensorType = 'Temperature' AND Name like '%CPU%'"
-                
-                    $Output.Temperature.Current = $($CPUtemp.value | Measure-Object -Average).Average
-                    $Output.Temperature.Minimum = $($CPUtemp.min | Measure-Object -Average).Average
-                    $Output.Temperature.Maximum = $($CPUtemp.max | Measure-Object -Average).Average
+                    $Output.Temperature_CPU.Current = $($CPUtemp.value | Measure-Object -Average).Average
+                    $Output.Temperature_CPU.Minimum = $($CPUtemp.min | Measure-Object -Average).Average
+                    $Output.Temperature_CPU.Maximum = $($CPUtemp.max | Measure-Object -Average).Average
+
+                    $GPUtemp = Get-WmiObject -namespace "root/OpenHardwareMonitor" `
+                        -Class Sensor `
+                        -Property Name, SensorType, value, min, max, parent `
+                        -Filter "SensorType = 'Temperature' AND Name like '%GPU%'"
+                    $Output.Temperature_GPU.Current = $($GPUtemp.value | Measure-Object -Average).Average
+                    $Output.Temperature_GPU.Minimum = $($GPUtemp.min | Measure-Object -Average).Average
+                    $Output.Temperature_GPU.Maximum = $($GPUtemp.max | Measure-Object -Average).Average   
 
                     $Power = Get-WmiObject -namespace "root/OpenHardwareMonitor" `
                         -Class Sensor `
@@ -104,6 +117,9 @@ function Get-OpenHardwareMonitorFromJob {
                 'CPU_Temperature_Current'  = $null
                 'CPU_Temperature_Min'      = $null
                 'CPU_Temperature_Max'      = $null
+                'GPU_Temperature_Current'  = $null
+                'GPU_Temperature_Min'      = $null
+                'GPU_Temperature_Max'      = $null
                 'PowerConsumption_Current' = $null
                 'PowerConsumption_Min'     = $null
                 'PowerConsumption_Max'     = $null
@@ -123,9 +139,12 @@ function Get-OpenHardwareMonitorFromJob {
                         Write-Host "$jobname is null"
                     }
                     else {
-                        $Entry.CPU_Temperature_Current = $Output.'Temperature'.Current
-                        $Entry.CPU_Temperature_Min = $Output.'Temperature'.Minimum
-                        $Entry.CPU_Temperature_Max = $Output.'Temperature'.Maximum
+                        $Entry.CPU_Temperature_Current = $Output.'Temperature_CPU'.Current
+                        $Entry.CPU_Temperature_Min = $Output.'Temperature_CPU'.Minimum
+                        $Entry.CPU_Temperature_Max = $Output.'Temperature_CPU'.Maximum
+                        $Entry.GPU_Temperature_Current = $Output.'Temperature_GPU'.Current
+                        $Entry.GPU_Temperature_Min = $Output.'Temperature_GPU'.Minimum
+                        $Entry.GPU_Temperature_Max = $Output.'Temperature_GPU'.Maximum
                         $Entry.PowerConsumption_Current = $Output.'Power'.Current
                         $Entry.PowerConsumption_Min = $Output.'Power'.Minimum
                         $Entry.PowerConsumption_Max = $Output.'Power'.Maximum
