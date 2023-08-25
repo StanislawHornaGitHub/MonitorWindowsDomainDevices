@@ -29,6 +29,11 @@ New-Variable -Name 'INPUT_HASH' -Value @{
         "Property"   = @("Caption", "Size")
         "Filter"     = ""
     }
+    "GPU"    = @{
+        "CLASS_Name" = "Win32_VideoController"
+        "Property"   = @("Caption")
+        "Filter"     = ""
+    }
 } -Force -Scope Script -Option ReadOnly
 
 function Invoke-Main {
@@ -66,6 +71,7 @@ function Get-DeviceDetails {
                 'RAMCapacity_GB'            = 0
                 'RAMSpeed_MHz'              = ""
                 'RAMmanufacturer'           = ""
+                'GPU_Model'                 = ""
                 'DiskName'                  = ""
                 'StorageCapacity_GB'        = 0
             }
@@ -85,6 +91,7 @@ function Get-DeviceDetails {
                     $Entry = Get-RAMdetails -Entry $Entry -Output $Output
                     $Entry = Get-DiskDetails -Entry $Entry -Output $Output
 
+                    $Entry.'GPU_Model' = $Output.GPU.Caption
                     $Entry.'LastUpdate' = $LastUpdate
                 }
             }
@@ -178,7 +185,8 @@ function Get-DiskDetails {
         for ($i = 1; $i -lt $Disks.Count; $i++) {
             $Entry.'DiskName' += ";$($Disks[$i])"
         }
-    }else{
+    }
+    else {
         $Entry.'DiskName' = $Disks
     }
     $Output.Drive | ForEach-Object { $Entry.'StorageCapacity_GB' += ($_.Size / 1GB) }
