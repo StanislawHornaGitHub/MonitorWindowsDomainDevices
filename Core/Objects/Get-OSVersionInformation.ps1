@@ -16,15 +16,20 @@ New-Variable -Name 'INPUT_HASH' -Value @{
         }
     }
     'WMI'      = @{
-        "OS"      = @{
+        "OS"                = @{
             "CLASS_Name" = 'Win32_OperatingSystem'
             "Property"   = @("Caption", "Version", "OSArchitecture")
             "Filter"     = ""
         }
-        "License" = @{
+        "License"           = @{
             "CLASS_Name" = "SoftwareLicensingProduct"
             "Property"   = @("LicenseStatus", "PartialProductKey")
             "Filter"     = "Name like 'Windows%'"
+        }
+        "CurrentlyLoggedOn" = @{
+            "CLASS_Name" = "Win32_process"
+            "Property"   = "*"
+            "Filter"     = "Name='explorer.exe' OR Name='cmd.exe'"
         }
     }
 } -Force -Scope Script -Option ReadOnly
@@ -85,7 +90,16 @@ function Get-OSVersionAsJob {
                     catch {
                         throw $_.Exception.Message
                     }
-    
+                }
+                try {
+                    $Output.'WMI'.'CurrentlyLoggedOn' = $Output.'WMI'.'CurrentlyLoggedOn'.GetOwner() | `
+                        Select-Object Domain, User -Unique | `
+                        Where-Object { $_.Domain -notlike "*NT*" }
+                    $Output.'WMI'.'CurrentlyLoggedOn' = "$($Output.'WMI'.'CurrentlyLoggedOn'.Domain)\$($Output.'WMI'.'CurrentlyLoggedOn'.User)"
+                }
+                catch {
+                    Write-Host $_
+                    $Output.'WMI'.'CurrentlyLoggedOn' = "Nobody is currently logged in"
                 }
                 return $Output
             } -ArgumentList $InputHash
@@ -104,6 +118,7 @@ function Get-WindowsVersionFromJob {
             $Entry = [PSCustomObject]@{
                 'DNSHostName'        = $jobName
                 'LastUpdate'         = ""
+                'CurrentlyLoggedOn'  = ""
                 'OS_Version'         = ""
                 'OS_Display_Version' = ""
                 'OS_build'           = ""
@@ -122,6 +137,8 @@ function Get-WindowsVersionFromJob {
             }
             finally {
                 if ($success) {
+                    $Entry.'CurrentlyLoggedOn' = $($Output.'WMI'.'CurrentlyLoggedOn')
+
                     $Entry.'OS_Version' = $Output.'WMI'.OS.Caption
                     $Entry.'OS_build' = "$($Output.'WMI'.OS.Version).$($Output.'Registry'.OS.UBR)"
                     $Entry.'OS_Architecture' = $($Output.'WMI'.OS.OSArchitecture).Substring(0, 6)
