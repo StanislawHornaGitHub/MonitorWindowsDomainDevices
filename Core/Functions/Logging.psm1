@@ -40,3 +40,10 @@ function Write-Mainlog {
         }   
     }
 }
+function Write-Log {
+    param (
+        $Message,
+        $Path
+    )
+    "$((Get-Date).ToString("yyyy-MM-dd HH:mm:ss")) - $Message" | Out-File -FilePath $Path -Append
+}

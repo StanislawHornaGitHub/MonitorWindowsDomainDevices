@@ -2,12 +2,15 @@
     .DESCRIPTION
     Script to get OS properties, version, build, activation status
 #>
+param(
+    [switch]$DEBUG
+)
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 New-Variable -Name "SQL_TABLE_TO_UPDATE" -Value "OperatingSystem" -Force -Scope Script -Option ReadOnly
 
 New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 60 -Force -Scope Script -Option ReadOnly
-New-Variable -Name "CREDENTIAL" -Value $(Get-CredentialFromJenkins) -Force -Scope Script -Option ReadOnly
+
 New-Variable -Name 'INPUT_HASH' -Value @{
     'Registry' = @{
         "OS" = @{
@@ -53,11 +56,10 @@ function Get-OSVersionAsJob {
         Start-Job -Name "$($C.DNSHostName)" -ScriptBlock {
             param(
                 $ComputerName,
-                [PSCredential] $Credentials,
                 $InputHash
             )
             # Collect data from WMI
-            $Output = Invoke-Command -ComputerName $ComputerName -Credential $Credentials -ScriptBlock {
+            $Output = Invoke-Command -ComputerName $ComputerName -ScriptBlock {
                 param(
                     $InputHash
                 )
@@ -104,7 +106,7 @@ function Get-OSVersionAsJob {
                 return $Output
             } -ArgumentList $InputHash
             return $Output
-        } -ArgumentList $($C.DNSHostName), $CREDENTIAL, $INPUT_HASH | Out-Null
+        } -ArgumentList $($C.DNSHostName), $INPUT_HASH | Out-Null
     }
 }
 function Get-WindowsVersionFromJob {
@@ -155,8 +157,14 @@ function Get-WindowsVersionFromJob {
                     $Entry.'LastUpdate' = $LastUpdate
                 }
             }
-            $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName $SQL_TABLE_TO_UPDATE
-            Invoke-SQLquery -Query $updateQuery -Credential $CREDENTIAL
+            if ($DEBUG) {
+                $Entry | Format-List
+            }
+            else {
+                $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName $SQL_TABLE_TO_UPDATE
+                Invoke-SQLquery -Query $updateQuery 
+            }
+
             Remove-Job -Name $jobName
         }
     }

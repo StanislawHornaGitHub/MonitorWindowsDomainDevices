@@ -1,15 +1,12 @@
 function Invoke-SQLquery {
     param (
-        [String]$Query,
-        [string]$FileQuery,
-        [PSCredential] $Credential = $(Get-CredentialFromJenkins)
+        $Query,
+        $FileQuery
     )
     if ($FileQuery) {
         $Output = Invoke-Sqlcmd `
             -ServerInstance $SQL_SERVER `
             -Database $SQL_DATABASE `
-            -Username $($Credential.UserName) `
-            -Password $($Credential.GetNetworkCredential().Password) `
             -InputFile $FileQuery `
             -ErrorAction Stop
     }
@@ -17,8 +14,6 @@ function Invoke-SQLquery {
         $Output = Invoke-Sqlcmd `
             -ServerInstance $SQL_SERVER `
             -Database $SQL_DATABASE `
-            -Username $($Credential.UserName) `
-            -Password $($Credential.GetNetworkCredential().Password) `
             -Query $Query `
             -ErrorAction Stop
     }else {
@@ -43,7 +38,6 @@ function Get-SQLdataUpdateQuery {
 
     return $SQL_Query_Template
 }
-
 function Get-SQLupdateSection {
     param (
         $Entry,
@@ -84,4 +78,21 @@ function Get-SQLinsertSection {
     $valuesSection += ")"
     $SQL_Insert_Query = "$SQL_Insert_Query`n$valuesSection"
     return $SQL_Insert_Query
+}
+function Test-SQLserverAvailability {
+    param(
+        [bool]$BypassEmptyInventory = $false
+    )
+    try {
+        $Output = Invoke-SQLquery -Query "SELECT * FROM $SQL_INVENTORY_TABLE_NAME"
+    }
+    catch {
+        Write-Log -Message $_ -Path $PROCESS_COORDINATOR_LOG_PATH
+        return $false
+    }
+    if(($null -eq $Output) -and ($BypassEmptyInventory -eq $false)){
+        Write-Log -Message "Inventory is empty" -Path $PROCESS_COORDINATOR_LOG_PATH
+        return $false
+    }
+    return $true
 }
