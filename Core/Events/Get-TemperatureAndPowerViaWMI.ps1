@@ -2,12 +2,14 @@
     .DESCRIPTION
     Script to get Temperature
 #>
+param(
+    [switch]$DEBUG
+)
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 New-Variable -Name "SQL_TABLE_TO_UPDATE" -Value "PowerAndTemperature" -Force -Scope Script -Option ReadOnly
 
 New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 60 -Force -Scope Script -Option ReadOnly
-New-Variable -Name "CREDENTIAL" -Value $(Get-CredentialFromJenkins) -Force -Scope Script -Option ReadOnly
 
 function Invoke-Main {
     try {
@@ -28,12 +30,11 @@ function Get-OpenHardwareMonitorAsJob {
         Start-Job -Name "$($C.DNSHostName)" -ScriptBlock {
             param(
                 $ComputerName,
-                [PSCredential] $Credentials,
                 $OPEN_HARDWARE_MONITOR_PATH,
                 $OPEN_HARDWARE_MONITOR_EXE
             )
             # Collect data from WMI
-            $Output = Invoke-Command -ComputerName $ComputerName -Credential $Credentials -ScriptBlock {
+            $Output = Invoke-Command -ComputerName $ComputerName -ScriptBlock {
                 param(
                     $OPEN_HARDWARE_MONITOR_PATH,
                     $OPEN_HARDWARE_MONITOR_EXE
@@ -100,7 +101,7 @@ function Get-OpenHardwareMonitorAsJob {
                 return $Output
             } -ArgumentList $OPEN_HARDWARE_MONITOR_PATH, $OPEN_HARDWARE_MONITOR_EXE
             return $Output
-        } -ArgumentList $($C.DNSHostName), $CREDENTIAL, $OPEN_HARDWARE_MONITOR_PATH, $OPEN_HARDWARE_MONITOR_EXE | Out-Null
+        } -ArgumentList $($C.DNSHostName), $OPEN_HARDWARE_MONITOR_PATH, $OPEN_HARDWARE_MONITOR_EXE | Out-Null
     }   
 }
 function Get-OpenHardwareMonitorFromJob {
@@ -149,9 +150,13 @@ function Get-OpenHardwareMonitorFromJob {
                         $Entry.PowerConsumption_Min = $Output.'Power'.Minimum
                         $Entry.PowerConsumption_Max = $Output.'Power'.Maximum
                         $Entry.TimeStamp = $TimeStamp
-
+                        if ($DEBUG) {
+                            $Entry | Format-List
+                        }
+                        else {
                         $insertQuery = Get-SQLinsertSection -Entry $Entry -TableName $SQL_TABLE_TO_UPDATE
-                        Invoke-SQLquery -Query $insertQuery -Credential $CREDENTIAL
+                        Invoke-SQLquery -Query $insertQuery
+                        }
                     }
                 }
             }

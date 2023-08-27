@@ -2,12 +2,14 @@
     .DESCRIPTION
     Script to get Boot details
 #>
+param(
+    [switch]$DEBUG
+)
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 New-Variable -Name "SQL_TABLE_TO_UPDATE" -Value "OperatingSystem" -Force -Scope Script -Option ReadOnly
 
 New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 60 -Force -Scope Script -Option ReadOnly
-New-Variable -Name "CREDENTIAL" -Value $(Get-CredentialFromJenkins) -Force -Scope Script -Option ReadOnly
 New-Variable -Name 'INPUT_HASH' -Value  @{
     'Registry' = @{
         "FastStart" = @{
@@ -25,8 +27,17 @@ New-Variable -Name 'INPUT_HASH' -Value  @{
 } -Force -Scope Script -Option ReadOnly
 
 function Invoke-Main {
-    Get-BootInformationAsJob
-    Get-BootInformationFromJob
+    try {
+        Get-BootInformationAsJob
+        Get-BootInformationFromJob
+    }
+    catch {
+        Write-Error -Message $_.Exception.Message
+        $EXIT_CODE = 1
+    }
+    finally {
+        exit $EXIT_CODE
+    }
 }
 function Get-BootInformationAsJob {
     $Computer = Get-ComputerListToProcess
@@ -34,11 +45,10 @@ function Get-BootInformationAsJob {
         Start-Job -Name "$($C.DNSHostName)" -ScriptBlock {
             param(
                 $ComputerName,
-                [PSCredential] $CREDENTIAL,
                 $InputHash
             )
             # Collect data from WMI
-            $Output = Invoke-Command -ComputerName $ComputerName -Credential $CREDENTIAL -ScriptBlock {
+            $Output = Invoke-Command -ComputerName $ComputerName -ScriptBlock {
                 param(
                     $InputHash
                 )
@@ -79,7 +89,7 @@ function Get-BootInformationAsJob {
                 return $Output
             } -ArgumentList $InputHash
             return $Output
-        } -ArgumentList $($C.DNSHostName), $CREDENTIAL, $INPUT_HASH | Out-Null
+        } -ArgumentList $($C.DNSHostName), $INPUT_HASH | Out-Null
     }
 }
 function Get-BootInformationFromJob {
@@ -114,8 +124,13 @@ function Get-BootInformationFromJob {
 
                 }
             }
-            $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName $SQL_TABLE_TO_UPDATE
-            Invoke-SQLquery -Query $updateQuery -Credential $CREDENTIAL 
+            if ($DEBUG) {
+                $Entry | Format-List
+            }
+            else {
+                $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName $SQL_TABLE_TO_UPDATE
+                Invoke-SQLquery -Query $updateQuery
+            }
             Remove-Job -Name $jobName
         }
     }

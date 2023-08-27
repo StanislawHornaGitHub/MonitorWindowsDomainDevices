@@ -43,7 +43,6 @@ function Get-WMIDataAsJob {
     }
 #>   
     param (
-        [PSCredential] $Credentials,
         $InputHash
     )
     # Get List of Available devices
@@ -53,11 +52,10 @@ function Get-WMIDataAsJob {
         Start-Job -Name "WMI;$($C.DNSHostName)" -ScriptBlock {
             param(
                 $ComputerName,
-                [PSCredential] $Credentials,
                 $InputHash
             )
             # Collect data from WMI
-            $Output = Invoke-Command -ComputerName $ComputerName -Credential $Credentials -ScriptBlock {
+            $Output = Invoke-Command -ComputerName $ComputerName -ScriptBlock {
                 param(
                     $InputHash
                 )
@@ -80,7 +78,7 @@ function Get-WMIDataAsJob {
                 return $Output
             } -ArgumentList $InputHash
             return $Output
-        } -ArgumentList $($C.DNSHostName), $Credentials, $InputHash | Out-Null
+        } -ArgumentList $($C.DNSHostName), $InputHash | Out-Null
     }
 }
 function Get-RegistryDataAsJob {
@@ -97,7 +95,6 @@ function Get-RegistryDataAsJob {
     }
 #>   
     param (
-        [PSCredential] $Credentials,
         $InputHash
     )
     $Computer = Get-ComputerListToProcess
@@ -106,11 +103,10 @@ function Get-RegistryDataAsJob {
         Start-Job -Name "REG;$($C.DNSHostName)" -ScriptBlock {
             param(
                 $ComputerName,
-                [PSCredential] $Credentials,
                 $InputHash
             )
             # Collect data from WMI
-            $Output = Invoke-Command -ComputerName $ComputerName -Credential $Credentials -ScriptBlock {
+            $Output = Invoke-Command -ComputerName $ComputerName -ScriptBlock {
                 param(
                     $InputHash
                 )
@@ -132,7 +128,7 @@ function Get-RegistryDataAsJob {
                 return $Output
             } -ArgumentList $InputHash
             return $Output
-        } -ArgumentList $($C.DNSHostName), $Credentials, $InputHash | Out-Null
+        } -ArgumentList $($C.DNSHostName), $InputHash | Out-Null
     }
 }
 function Convert-WMIDateTime {
