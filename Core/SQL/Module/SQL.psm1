@@ -48,7 +48,7 @@ function Get-SQLupdateSection {
     param (
         $Entry,
         $TableName,
-        $sqlPrimaryKey
+        $sqlPrimaryKey = $SQL_PRIMARY_KEY
     )
     $SQL_Update_Query = "UPDATE $TableName"
     $columnsToUpdate = ($Entry | Get-Member -Type NoteProperty).Name
@@ -68,7 +68,7 @@ function Get-SQLinsertSection {
     param (
         $Entry,
         $TableName,
-        $sqlPrimaryKey
+        $sqlPrimaryKey = $SQL_PRIMARY_KEY
     )
     $columnsToInsert = ($Entry | Get-Member -Type NoteProperty).Name
 

@@ -17,6 +17,7 @@ function Invoke-Main {
     try {
         Test-RootContents
         Test-SQLserver
+        Remove-OldJobs
         Invoke-MainLoop
     }
     catch {
@@ -118,10 +119,6 @@ function Start-DataRetrievingJob {
         $Type,
         $Name
     )
-    # TEMP CONDITION FOR DEBUG
-    if ($Type -ne "SyncData") {
-        return
-    }
     $Currentjob = Get-Job -Name $Name -ErrorAction SilentlyContinue
     # if it is null than nothing to process regarding job completion
     if ($null -ne $Currentjob) {
@@ -151,6 +148,8 @@ function Start-DataRetrievingJob {
         Remove-Job -Name $Name -Force
         Write-Log -Message "Job $Name removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
         $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
+        $Entry
+        $Query
         Invoke-SQLquery -Query $Query
     }
     # Start new job
@@ -236,6 +235,9 @@ function Get-ConfigurationDetails {
 }
 function Get-LastExecution {
     return (Invoke-SQLquery -FileQuery "$SQL_QUERIES_DIRECTORY/LastExecution.sql")
+}
+function Remove-OldJobs {
+    Get-Job | Remove-Job -Force
 }
 
 Invoke-Main
