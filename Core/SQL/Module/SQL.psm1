@@ -52,8 +52,8 @@ function Get-SQLupdateSection {
     )
     $SQL_Update_Query = "UPDATE $TableName"
     $columnsToUpdate = ($Entry | Get-Member -Type NoteProperty).Name
-    $columnsToUpdate = $columnsToUpdate | Where-Object { $_ -ne $sqlPrimaryKey }
-    $columnsToUpdate = $columnsToUpdate | Where-Object { $null -ne $Entry.$_ }
+    $columnsToUpdate = @($columnsToUpdate | Where-Object { $_ -ne $sqlPrimaryKey })
+    $columnsToUpdate = @($columnsToUpdate | Where-Object { $null -ne $Entry.$_ })
     
     $setSection = "SET "
     $setSection += "$($columnsToUpdate[0]) = '$($Entry.$($columnsToUpdate[0]))'"
@@ -72,8 +72,8 @@ function Get-SQLinsertSection {
     )
     $columnsToInsert = ($Entry | Get-Member -Type NoteProperty).Name
 
-    $columnsToInsert = $columnsToInsert | Where-Object { $_ -ne $sqlPrimaryKey }
-    $columnsToInsert = $columnsToInsert | Where-Object { $null -ne $Entry.$_ }
+    $columnsToInsert = @($columnsToInsert | Where-Object { $_ -ne $sqlPrimaryKey })
+    $columnsToInsert = @($columnsToInsert | Where-Object { $null -ne $Entry.$_ })
 
     $SQL_Insert_Query = "INSERT INTO $TableName ($sqlPrimaryKey"
     $valuesSection = "VALUES ('$($Entry.$sqlPrimaryKey)'"
@@ -95,11 +95,11 @@ function Test-SQLserverAvailability {
         $Output = Invoke-SQLquery -Query "SELECT * FROM $SQL_INVENTORY_TABLE_NAME"
     }
     catch {
-        Write-Log -Message $_ -Path $PROCESS_COORDINATOR_LOG_PATH
+        Write-Log -Message $_ -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
         return $false
     }
     if (($null -eq $Output) -and ($BypassEmptyInventory -eq $false)) {
-        Write-Log -Message "Inventory is empty" -Path $PROCESS_COORDINATOR_LOG_PATH
+        Write-Log -Message "Inventory is empty" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
         return $false
     }
     return $true

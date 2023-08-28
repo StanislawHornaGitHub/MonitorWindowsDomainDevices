@@ -33,7 +33,7 @@ $env:DEVICE_MONITORING_ROOT_DIRECTORY = $((Get-Location).Path)
 ########################
 ## Logs Paths SECTION ##
 ########################
-New-Variable -Name "LOGS_ROOT_DIRECTORY" -Value ".\Core\Logs" -Force -Scope Global -Option ReadOnly
+New-Variable -Name "LOGS_ROOT_DIRECTORY" -Value ".\Log" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "MAIN_LOG_PATH" -Value "$LOGS_ROOT_DIRECTORY\$((Get-Date).ToString("yyyy-MM-dd"))_Main_Log.txt" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "PROCESS_COORDINATOR_LOG_PATH" -Value "$LOGS_ROOT_DIRECTORY\$((Get-Date).ToString("yyyy-MM-dd"))_Process_coordinator_Log.txt" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "PIPELINE_LOGS_DIRECTORY" -Value "$LOGS_ROOT_DIRECTORY\Pipelines" -Force -Scope Global -Option ReadOnly

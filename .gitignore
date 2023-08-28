@@ -5,5 +5,5 @@ test.ps1
 SQL-test.ps1
 counters.txt
 log.txt
-/Core/Logs/*
+/Log/*
 *copy*

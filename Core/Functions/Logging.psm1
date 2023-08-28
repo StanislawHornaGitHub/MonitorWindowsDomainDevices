@@ -43,7 +43,9 @@ function Write-Mainlog {
 function Write-Log {
     param (
         $Message,
+        $Type,
         $Path
     )
-    "$((Get-Date).ToString("yyyy-MM-dd HH:mm:ss")) - $Message" | Out-File -FilePath $Path -Append
+    $Type = $Type.ToUpper()
+    "$((Get-Date).ToString("yyyy.MM.dd HH:mm:ss\.fff")) - $Type : $Message" | Out-File -FilePath $Path -Append
 }

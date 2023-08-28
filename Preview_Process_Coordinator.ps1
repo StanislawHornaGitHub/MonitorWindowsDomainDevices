@@ -17,25 +17,31 @@ New-Variable -Name "TEST_SQL_SLEEP_TIME_SECONDS" -Value 60 -Force -Scope Script 
 
 
 function Invoke-Main {
+    Write-Log -Message "Process started" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
     try {
         Test-RootContents
         Test-SQLserver
         Invoke-MainLoop
     }
     catch {
-        Write-Error -Message $_.Exception.Message
+        Write-Log -Message "$($_.Exception.Message)" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
         $EXIT_CODE = 1
     }
     finally {
+        Write-Log -Message "Process exited with code $EXIT_CODE" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
         exit $EXIT_CODE
     }
 }
 function Invoke-MainLoop {
+    Write-Log -Message "Entering main loop" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
     $whileCondition = $true
     while ($whileCondition) {
+        # Get Log name for current date
+        New-Variable -Name "PROCESS_COORDINATOR_LOG_PATH" `
+        -Value "$LOGS_ROOT_DIRECTORY\$((Get-Date).ToString("yyyy-MM-dd"))_Process_coordinator_Log.txt" `
+        -Force -Scope Global -Option ReadOnly
         # Get jobs to run and time thresholds
         $Config = Get-ConfigurationDetails
-
         $SleepTime = $Script:MAX_SLEEP_INTERVAL
         # SyncData Section
         foreach ($S in $Config.SyncData.Keys) {
@@ -49,7 +55,7 @@ function Invoke-MainLoop {
             if ($jobSleeptimeSeconds -ge 0) {
                 Write-Host "Start job $S" -ForegroundColor Green
                 ### Start Appropriate job ###
-                Start-DataRetrievingJob -Type "SyncData" -Name $S
+                Start-DataRetrievingJob -Name $S -Type "SyncData" 
 
             }
             else {
@@ -73,7 +79,7 @@ function Invoke-MainLoop {
                 Write-Host "Start job $O" -ForegroundColor Green
                 ### Start Appropriate job ###
                 
-                Invoke-UpdateStartLastExecution -Name $O -Type "Objects"
+                Start-DataRetrievingJob -Name $O -Type "Objects"
             }
             else {
                 # If time difference was -lt 0 than we have the sleep time for this job
@@ -96,7 +102,7 @@ function Invoke-MainLoop {
                 Write-Host "Start job $E" -ForegroundColor Green
                 ### Start Appropriate job ###
 
-                Invoke-UpdateStartLastExecution -Name $E -Type "Events"
+                Start-DataRetrievingJob -Name $E -Type "Events"
             }
             else {
                 # If time difference was -lt 0 than we have the sleep time for this job
@@ -106,17 +112,10 @@ function Invoke-MainLoop {
                 }
             }
         }
-        
-        
-        Start-Sleep -Seconds 2
-        Get-Job
-        if ((Get-Job -Name "Get-DeviceInventoryToMonitor.ps1" -ErrorAction SilentlyContinue).State -eq "Completed") {
-            Receive-Job -Name "Get-DeviceInventoryToMonitor.ps1"
-            Get-Job -Name "Get-DeviceInventoryToMonitor.ps1" | Remove-Job
-            $whileCondition = $false
-        }
-        # Start-Sleep -Seconds $SleepTime
+        Write-Log -Message "Start Sleep $([int]$SleepTime) seconds" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+        Start-Sleep -Seconds $SleepTime
     }
+    Write-Log -Message "Exiting main loop" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
 }
 function Start-DataRetrievingJob {
     param(
@@ -139,7 +138,7 @@ function Start-DataRetrievingJob {
         if ($Currentjob.State -eq "Running") {
             $Entry.'Last_Exit_Code' = 111
             $Entry.'Errors' = "Last execution did not end, Stop will be forced"
-        
+            Write-Log -Message "Job $Name last execution did not end" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
             Stop-Job -Name $Name -Confirm:$false
         }
         else {
@@ -154,14 +153,16 @@ function Start-DataRetrievingJob {
             }
         }
         Remove-Job -Name $Name -Force
+        Write-Log -Message "Job $Name removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
         $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
+        Invoke-SQLquery -Query $Query
     }
     # Start new job
     Start-Job -Name $Name `
         -InitializationScript { Set-Location $env:DEVICE_MONITORING_ROOT_DIRECTORY } `
         -FilePath $("./Core/$Type/$Name")
 
-    Write-Host "JOB STARTED $Name"
+    Write-Log -Message "Job $Name started" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
     Invoke-UpdateStartLastExecution -Name $Name -Type $Type
 }
 function Invoke-UpdateStartLastExecution {
@@ -181,6 +182,7 @@ function Test-SQLserver {
     while ($(Test-SQLserverAvailability -BypassEmptyInventory $BYPASS_EMPTY_INVENTORY) -eq $false) {
         Start-Sleep -Seconds $TEST_SQL_SLEEP_TIME_SECONDS
     }
+    Write-Log -Message "SQL Server Availability passed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
 }
 function Test-RootContents {
     $Config = Get-Content -Path $CONFIG_FILEPATH | ConvertFrom-Json
@@ -196,7 +198,7 @@ function Test-RootContents {
     foreach ($folder in ($Config | Get-Member -MemberType NoteProperty).Name) {
         foreach ($file in ($Config.$folder | Get-Member -MemberType NoteProperty).Name) {
             if (-not (Test-Path "./Core/$folder/$file")) {
-                Write-Log -Message "Script $file is missing" -Path $PROCESS_COORDINATOR_LOG_PATH
+                Write-Log -Message "Script $file is missing" -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH
                 $Status = $false
             }
         }
@@ -204,6 +206,7 @@ function Test-RootContents {
     if ($Status -eq $false) {
         throw "Some Components are missing"
     }
+    Write-Log -Message "Component compliance passed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
 }
 function Get-ConfigurationDetails {
     $Config = Get-Content -Path $CONFIG_FILEPATH | ConvertFrom-Json
