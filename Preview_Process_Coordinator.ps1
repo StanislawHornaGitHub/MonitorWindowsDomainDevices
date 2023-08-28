@@ -1,10 +1,6 @@
 <#
     .DESCRIPTION
     Script to run all processes for monitoring purposes.
-    Use SQL dedicated table to store when particular script was trigerred for the last time
-    Infinite loop which is checking the timing for jobs and starting new scripts in background jobs
-    rebuild logging capabilities
-
 #>
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
