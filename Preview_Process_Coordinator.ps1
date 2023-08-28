@@ -110,7 +110,7 @@ function Invoke-MainLoop {
         
         Start-Sleep -Seconds 2
         Get-Job
-        if ((Get-Job -Name "Get-DeviceInventoryToMonitor.ps1").State -eq "Completed") {
+        if ((Get-Job -Name "Get-DeviceInventoryToMonitor.ps1" -ErrorAction SilentlyContinue).State -eq "Completed") {
             Receive-Job -Name "Get-DeviceInventoryToMonitor.ps1"
             Get-Job -Name "Get-DeviceInventoryToMonitor.ps1" | Remove-Job
             $whileCondition = $false
