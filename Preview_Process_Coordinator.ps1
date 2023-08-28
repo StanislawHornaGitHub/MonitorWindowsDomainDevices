@@ -6,7 +6,7 @@ Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 
 
-New-Variable -Name "MAX_SLEEP_INTERVAL" -Value 3600 -Force -Scope Script
+New-Variable -Name "MAX_SLEEP_INTERVAL" -Value 3600000 -Force -Scope Script
 New-Variable -Name "BYPASS_EMPTY_INVENTORY" -Value $false -Force -Scope Script -Option ReadOnly
 New-Variable -Name "CONFIG_FILEPATH" -Value "./Config.json" -Force -Scope Script -Option ReadOnly
 New-Variable -Name "TEST_SQL_SLEEP_TIME_SECONDS" -Value 60 -Force -Scope Script -Option ReadOnly
@@ -39,7 +39,7 @@ function Invoke-MainLoop {
         -Force -Scope Global -Option ReadOnly
         # Get jobs to run and time thresholds
         $Config = Get-ConfigurationDetails
-        $SleepTime = $Script:MAX_SLEEP_INTERVAL
+        $SleepTime = ($Script:MAX_SLEEP_INTERVAL * 1000) 
         # SyncData Section
         foreach ($S in $Config.SyncData.Keys) {
             $currentTime = Get-Date
@@ -47,9 +47,9 @@ function Invoke-MainLoop {
             # Get time when job should be invoked
             $runTime = $Config.SyncData.$S.'Last_Refresh_time'.AddSeconds($refreshInterval)
             # Calculate time difference between current time and desired run time
-            $jobSleeptimeSeconds = ($currentTime - $runTime).TotalSeconds
+            $jobSleeptimeMiliseconds = ($currentTime - $runTime).TotalMilliseconds
             # If current time is -gt than runtime than it should be run now
-            if ($jobSleeptimeSeconds -ge 0) {
+            if ($jobSleeptimeMiliseconds -ge 0) {
                 Write-Host "Start job $S" -ForegroundColor Green
                 ### Start Appropriate job ###
                 Start-DataRetrievingJob -Name $S -Type "SyncData" 
@@ -57,9 +57,9 @@ function Invoke-MainLoop {
             }
             else {
                 # If time difference was -lt 0 than we have the sleep time for this job
-                $jobSleeptimeSeconds *= (-1)
-                if ($jobSleeptimeSeconds -lt $SleepTime) {
-                    $SleepTime = $jobSleeptimeSeconds
+                $jobSleeptimeMiliseconds *= (-1)
+                if ($jobSleeptimeMiliseconds -lt $SleepTime) {
+                    $SleepTime = $jobSleeptimeMiliseconds
                 }
             }
         }
@@ -70,9 +70,9 @@ function Invoke-MainLoop {
             # Get time when job should be invoked
             $runTime = $Config.Objects.$O.'Last_Refresh_time'.AddSeconds($refreshInterval)
             # Calculate time difference between current time and desired run time
-            $jobSleeptimeSeconds = ($currentTime - $runTime).TotalSeconds
+            $jobSleeptimeMiliseconds = ($currentTime - $runTime).TotalMilliseconds
             # If current time is -gt than runtime than it should be run now
-            if ($jobSleeptimeSeconds -ge 0) {
+            if ($jobSleeptimeMiliseconds -ge 0) {
                 Write-Host "Start job $O" -ForegroundColor Green
                 ### Start Appropriate job ###
                 
@@ -80,9 +80,9 @@ function Invoke-MainLoop {
             }
             else {
                 # If time difference was -lt 0 than we have the sleep time for this job
-                $jobSleeptimeSeconds *= (-1)
-                if ($jobSleeptimeSeconds -lt $SleepTime) {
-                    $SleepTime = $jobSleeptimeSeconds
+                $jobSleeptimeMiliseconds *= (-1)
+                if ($jobSleeptimeMiliseconds -lt $SleepTime) {
+                    $SleepTime = $jobSleeptimeMiliseconds
                 }
             }
         }
@@ -93,9 +93,9 @@ function Invoke-MainLoop {
             # Get time when job should be invoked
             $runTime = $Config.Events.$E.'Last_Refresh_time'.AddSeconds($refreshInterval)
             # Calculate time difference between current time and desired run time
-            $jobSleeptimeSeconds = ($currentTime - $runTime).TotalSeconds
+            $jobSleeptimeMiliseconds = ($currentTime - $runTime).TotalMilliseconds
             # If current time is -gt than runtime than it should be run now
-            if ($jobSleeptimeSeconds -ge 0) {
+            if ($jobSleeptimeMiliseconds -ge 0) {
                 Write-Host "Start job $E" -ForegroundColor Green
                 ### Start Appropriate job ###
 
@@ -103,14 +103,14 @@ function Invoke-MainLoop {
             }
             else {
                 # If time difference was -lt 0 than we have the sleep time for this job
-                $jobSleeptimeSeconds *= (-1)
-                if ($jobSleeptimeSeconds -lt $SleepTime) {
-                    $SleepTime = $jobSleeptimeSeconds
+                $jobSleeptimeMiliseconds *= (-1)
+                if ($jobSleeptimeMiliseconds -lt $SleepTime) {
+                    $SleepTime = $jobSleeptimeMiliseconds
                 }
             }
         }
-        Write-Log -Message "Start Sleep $([int]$SleepTime) seconds" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
-        Start-Sleep -Seconds $SleepTime
+        Write-Log -Message "Start Sleep $([int]$SleepTime) miliseconds" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+        Start-Sleep -Milliseconds $SleepTime
     }
     Write-Log -Message "Exiting main loop" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
 }
@@ -238,6 +238,7 @@ function Get-LastExecution {
 }
 function Remove-OldJobs {
     Get-Job | Remove-Job -Force
+    Write-Log -Message "Old jobs removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
 }
 
 Invoke-Main
