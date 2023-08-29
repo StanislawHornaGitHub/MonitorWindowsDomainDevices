@@ -151,6 +151,7 @@ function Start-DataRetrievingJob {
                 $Entry.'Last_Exit_Code' = 1
             }
         }
+        Stop-Job -Name $Name -Confirm:$false
         Remove-Job -Name $Name -Force
         Write-Log -Message "Job $Name removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
         $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
@@ -257,7 +258,8 @@ function Stop-AllJobs {
     Write-Log -Message "Exiting waiting loop" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
     $remainingJobs = Get-Job
     if ($null -ne $remainingJobs) {
-        Get-Job | Remove-Job -Force
+        $remainingJobs | Stop-Job -Confirm:$false
+        $remainingJobs | Remove-Job -Force
         Write-log -Message "Background jobs were running longer than TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS ($TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS)" `
             -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH
     }
