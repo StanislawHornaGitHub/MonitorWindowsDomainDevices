@@ -3,6 +3,8 @@
     Script to run all processes for monitoring purposes.
 #>
 Import-Module "./Core/Import-AllModules.psm1"
+New-Variable -Name "SCHEDULED_TASK_NAME" -Value "Process_Coordinator" -Force -Scope Script -Option ReadOnly
+New-Variable -Name "SCHEDULED_TASK_PATH" "\MonitorWindowsDomainDevices" -Force -Scope Script -Option ReadOnly
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 
 
@@ -211,14 +213,17 @@ function Get-ConfigurationDetails {
     return $hash
 }
 function Stop-ProcessCoordinator {
-    if ($STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER -eq 1) {
-        Write-Log -Message "Stop process invoked by command STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
-        Stop-AllJobs
-        return $false
-    }
     if ($STOP_PROCESS_COORDINATOR -eq 1) {
         Write-Log -Message "Stop process invoked by command STOP_PROCESS_COORDINATOR" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
         Stop-AllJobs
+
+        return $false
+    }
+    if ($STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER -eq 1) {
+        Write-Log -Message "Stop process invoked by command STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+        Stop-AllJobs
+        Disable-ProcessCoordinatorScheduledTask
+
         return $false
     }
     return $true
@@ -257,6 +262,18 @@ function Stop-AllJobs {
             -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH
     }
     
+}
+function Disable-ProcessCoordinatorScheduledTask {
+    Write-Log -Message "Disable scheduled task invoked" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+    try {
+        Disable-ScheduledTask -TaskName $SCHEDULED_TASK_NAME `
+            -TaskPath $SCHEDULED_TASK_PATH `
+            -ErrorAction Stop | Out-Null
+            Write-Log -Message "Scheduled task successfully disabled" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+    }
+    catch {
+        Write-Log -Message "$($_.Exception.Message)" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
+    }
 }
 function Test-SQLserver {
     while ($(Test-SQLserverAvailability -BypassEmptyInventory $BYPASS_EMPTY_INVENTORY) -eq $false) {
