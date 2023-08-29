@@ -11,11 +11,15 @@ New-Variable -Name "BYPASS_EMPTY_INVENTORY" -Value $false -Force -Scope Script -
 New-Variable -Name "CONFIG_FILEPATH" -Value "./Config.json" -Force -Scope Script -Option ReadOnly
 New-Variable -Name "TEST_SQL_SLEEP_TIME_SECONDS" -Value 60 -Force -Scope Script -Option ReadOnly
 
+New-Variable -Name "STOP_PROCESS_COORDINATOR" -Value 0 -Force -Scope Global
+New-Variable -Name "STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER" -Value 0 -Force -Scope Global
 
+New-Variable -Name "TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS" -Value 60 -Force -Scope Script -Option ReadOnly
 function Invoke-Main {
     Write-Log -Message "Process started" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
     try {
         Test-RootContents
+        Invoke-LogFolderStructure
         Test-SQLserver
         Remove-OldJobs
         Invoke-MainLoop
@@ -35,8 +39,8 @@ function Invoke-MainLoop {
     while ($whileCondition) {
         # Get Log name for current date
         New-Variable -Name "PROCESS_COORDINATOR_LOG_PATH" `
-        -Value "$LOGS_ROOT_DIRECTORY\$((Get-Date).ToString("yyyy-MM-dd"))_Process_coordinator_Log.txt" `
-        -Force -Scope Global -Option ReadOnly
+            -Value "$LOGS_ROOT_DIRECTORY\$((Get-Date).ToString("yyyy-MM-dd"))_Process_coordinator_Log.txt" `
+            -Force -Scope Global -Option ReadOnly
         # Get jobs to run and time thresholds
         $Config = Get-ConfigurationDetails
         $SleepTime = ($Script:MAX_SLEEP_INTERVAL * 1000) 
@@ -108,6 +112,8 @@ function Invoke-MainLoop {
         }
         Write-Log -Message "Start Sleep $([int]$SleepTime) miliseconds" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
         Start-Sleep -Milliseconds $SleepTime
+        
+        $whileCondition = Stop-ProcessCoordinator
     }
     Write-Log -Message "Exiting main loop" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
 }
@@ -138,6 +144,7 @@ function Start-DataRetrievingJob {
                 $Entry.'Last_Exit_Code' = 0
             }
             catch {
+                Write-Log -Message "$Name - $_" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
                 $Entry.'Errors' = $_
                 $Entry.'Last_Exit_Code' = 1
             }
@@ -145,8 +152,6 @@ function Start-DataRetrievingJob {
         Remove-Job -Name $Name -Force
         Write-Log -Message "Job $Name removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
         $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
-        $Entry
-        $Query
         Invoke-SQLquery -Query $Query
     }
     # Start new job
@@ -170,41 +175,16 @@ function Invoke-UpdateStartLastExecution {
     $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
     Invoke-SQLquery -Query $Query
 }
-function Test-SQLserver {
-    while ($(Test-SQLserverAvailability -BypassEmptyInventory $BYPASS_EMPTY_INVENTORY) -eq $false) {
-        Start-Sleep -Seconds $TEST_SQL_SLEEP_TIME_SECONDS
-    }
-    Write-Log -Message "SQL Server Availability passed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
-}
-function Test-RootContents {
-    $Config = Get-Content -Path $CONFIG_FILEPATH | ConvertFrom-Json
-    $Status = $true
-    # Modules check
-    foreach ($module in $Config.Modules) {
-        if (-not (Test-Path "./Core/$module")) {
-            Write-Log -Message "Module $module is missing" -Path $PROCESS_COORDINATOR_LOG_PATH
-            $Status = $false
-        }
-    }
-    # Scripts check
-    foreach ($folder in ($Config | Get-Member -MemberType NoteProperty).Name) {
-        foreach ($file in ($Config.$folder | Get-Member -MemberType NoteProperty).Name) {
-            if (-not (Test-Path "./Core/$folder/$file")) {
-                Write-Log -Message "Script $file is missing" -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH
-                $Status = $false
-            }
-        }
-    }
-    if ($Status -eq $false) {
-        throw "Some Components are missing"
-    }
-    Write-Log -Message "Component compliance passed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
-}
 function Get-ConfigurationDetails {
     $Config = Get-Content -Path $CONFIG_FILEPATH | ConvertFrom-Json
+    New-Variable -Name "STOP_PROCESS_COORDINATOR" `
+        -Value $($Config.Commands.Stop_Process_Coordinator) -Force -Scope Global
+    New-Variable -Name "STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER" `
+        -Value $($Config.Commands.Stop_Process_and_Disable_Task_Scheduler) -Force -Scope Global
+    
     $hash = @{}
     foreach ($Type in $Config.PSObject.Properties) {
-        if (($Type.Name) -eq "Modules") {
+        if ((($Type.Name) -eq "Modules") -or (($Type.Name) -eq "Commands")) {
             continue
         }
         $hash[$Type.Name] = @{}
@@ -229,6 +209,122 @@ function Get-ConfigurationDetails {
         $hash.$Type.$Name.Last_Refresh_time = $LastRefresh
     }
     return $hash
+}
+function Stop-ProcessCoordinator {
+    if ($STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER -eq 1) {
+        Write-Log -Message "Stop process invoked by command STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+        $Time = [System.Diagnostics.Stopwatch]::StartNew()
+        Write-Log -Message "Entering the loop to wait for running jobs" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+        while ($null -ne (Get-Job) -and ($Time.ElapsedMilliseconds -le ($TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS * 1000))) {
+            $Name = (Get-Job | Where-Object { ($_.State -ne "Running") } | Select-Object -First 1).Name
+            if ($null -ne $Name) {
+                $Entry = [PSCustomObject]@{
+                    'Name'           = $Name
+                    'Last_Exit_Code' = $null
+                    'Errors'         = $null
+                }
+                try {
+                    $Output = Receive-Job -Name $Name -ErrorAction Stop
+                    $Entry.'Last_Exit_Code' = 0
+                }
+                catch {
+                    Write-Log -Message "$Name - $_" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
+                    $Entry.'Errors' = $_
+                    $Entry.'Last_Exit_Code' = 1
+                }
+                Remove-Job -Name $Name -Force
+                Write-Log -Message "Job $Name removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+                $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
+                Invoke-SQLquery -Query $Query
+            }
+        }
+        Write-Log -Message "Exiting waiting loop" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+        $remainingJobs = Get-Job
+        if ($null -ne $remainingJobs) {
+            Get-Job | Remove-Job -Force
+            Write-log -Message "Background jobs were running longer than TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS ($TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS)" `
+                -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH
+        }
+        return $false
+    }
+    if ($STOP_PROCESS_COORDINATOR -eq 1) {
+        Write-Log -Message "Stop process invoked by command STOP_PROCESS_COORDINATOR" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+        $Time = [System.Diagnostics.Stopwatch]::StartNew()
+        Write-Log -Message "Entering the loop to wait for running jobs" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+        while ($null -ne (Get-Job) -and ($Time.ElapsedMilliseconds -le ($TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS * 1000))) {
+            $Name = (Get-Job | Where-Object { ($_.State -ne "Running") } | Select-Object -First 1).Name
+            if ($null -ne $Name) {
+                $Entry = [PSCustomObject]@{
+                    'Name'           = $Name
+                    'Last_Exit_Code' = $null
+                    'Errors'         = $null
+                }
+                try {
+                    $Output = Receive-Job -Name $Name -ErrorAction Stop
+                    $Entry.'Last_Exit_Code' = 0
+                }
+                catch {
+                    Write-Log -Message "$Name - $_" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
+                    $Entry.'Errors' = $_
+                    $Entry.'Last_Exit_Code' = 1
+                }
+                Remove-Job -Name $Name -Force
+                Write-Log -Message "Job $Name removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+                $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
+                Invoke-SQLquery -Query $Query
+            }
+        }
+        Write-Log -Message "Exiting waiting loop" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+        $remainingJobs = Get-Job
+        if ($null -ne $remainingJobs) {
+            Get-Job | Remove-Job -Force
+            Write-log -Message "Background jobs were running longer than TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS ($TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS)" `
+                -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH
+        }
+        return $false
+    }
+    return $true
+}
+function Test-SQLserver {
+    while ($(Test-SQLserverAvailability -BypassEmptyInventory $BYPASS_EMPTY_INVENTORY) -eq $false) {
+        Start-Sleep -Seconds $TEST_SQL_SLEEP_TIME_SECONDS
+    }
+    Write-Log -Message "SQL Server Availability passed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+}
+function Invoke-LogFolderStructure {
+    if (-not (Test-Path -Path $LOGS_ROOT_DIRECTORY)) {
+        New-Item -ItemType Directory -Path $LOGS_ROOT_DIRECTORY | Out-Null
+        Write-Log -Message "Logs root directiory created" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+    }
+    if (-not (Test-Path -Path "$LOGS_ROOT_DIRECTORY\Job")) {
+        New-Item -ItemType Directory -Path "$LOGS_ROOT_DIRECTORY\Job" | Out-Null
+        Write-Log -Message "Logs job directiory created" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+    }
+    Write-Log -Message "Logs structure completed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+}
+function Test-RootContents {
+    $Config = Get-Content -Path $CONFIG_FILEPATH | ConvertFrom-Json
+    $Status = $true
+    # Modules check
+    foreach ($module in $Config.Modules) {
+        if (-not (Test-Path "./Core/$module")) {
+            Write-Log -Message "Module $module is missing" -Path $PROCESS_COORDINATOR_LOG_PATH
+            $Status = $false
+        }
+    }
+    # Scripts check
+    foreach ($folder in ($Config | Get-Member -MemberType NoteProperty).Name) {
+        foreach ($file in ($Config.$folder | Get-Member -MemberType NoteProperty).Name) {
+            if ((-not (Test-Path "./Core/$folder/$file")) -and ($folder -ne "Commands")) {
+                Write-Log -Message "Script $file is missing" -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH
+                $Status = $false
+            }
+        }
+    }
+    if ($Status -eq $false) {
+        throw "Some Components are missing"
+    }
+    Write-Log -Message "Component compliance passed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
 }
 function Get-LastExecution {
     return (Invoke-SQLquery -FileQuery "$SQL_QUERIES_DIRECTORY/LastExecution.sql")

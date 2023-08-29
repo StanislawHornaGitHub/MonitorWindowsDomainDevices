@@ -110,9 +110,9 @@ function Get-OpenHardwareMonitorAsJob {
     }   
 }
 function Get-OpenHardwareMonitorFromJob {
-    $Timer = [System.Diagnostics.Stopwatch]::StartNew()
+    $Time = [System.Diagnostics.Stopwatch]::StartNew()
     $TimeStamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-    while ($null -ne (Get-Job) -and ($Timer.ElapsedMilliseconds -le ($REMOTE_CONNECTION_TIMEOUT_SECONDS * 1000))) {
+    while ($null -ne (Get-Job) -and ($Time.ElapsedMilliseconds -le ($REMOTE_CONNECTION_TIMEOUT_SECONDS * 1000))) {
         $jobName = $null
         $jobName = (Get-Job | Where-Object { ($_.State -ne "Running") } | Select-Object -First 1).Name
         if ($null -ne $jobName) {
