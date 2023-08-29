@@ -3,11 +3,13 @@
     Script to check if device is active before retrieving data
 
 #>
+Param(
+    [switch]$DEBUG
+)
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 
 New-Variable -Name "PING_TIMEOUT" -Value 100 -Force -Scope Script -Option ReadOnly
-New-Variable -Name "CREDENTIAL" -Value $(Get-CredentialFromJenkins) -Force -Scope Script -Option ReadOnly
 New-Variable -Name "COMPUTER" -Value $(Get-ComputerListToProcess) -Force -Scope Script -Option ReadOnly
 function Invoke-Main {
     try {
@@ -27,8 +29,12 @@ function Test-ComputersViaPing {
         $IP = $COMPUTER[$i].IPaddress
         if ((Invoke-Ping -IPaddress $IP).PingSucceded -eq $false) {
             $Hostname = $COMPUTER[$i].DNSHostName
-            $QueryToInvoke = $UpdateIsActiveQueryTemplate.Replace("COMPUTER_DNS_HOSTNAME_VARIABLE", $Hostname)
-            Invoke-SQLquery -Query $QueryToInvoke -Credential $CREDENTIAL
+            if ($DEBUG) {
+                Write-Host "$Hostname"
+            } else {
+                $QueryToInvoke = $UpdateIsActiveQueryTemplate.Replace("COMPUTER_DNS_HOSTNAME_VARIABLE", $Hostname)
+                Invoke-SQLquery -Query $QueryToInvoke
+            }
         }
     }
 }

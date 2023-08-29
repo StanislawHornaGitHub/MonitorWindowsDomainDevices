@@ -2,12 +2,17 @@
     .DESCRIPTION
     Script to get Volumes space status
 #>
+param(
+    [switch]$DEBUG
+)
 Import-Module "./Core/Import-AllModules.psm1"
+New-Variable -Name "SCRIPT_NAME" -Value "Get-VolumeSpace" -Force -Scope Global -Option ReadOnly
+New-Variable -Name "TIMER" -Value $([System.Diagnostics.Stopwatch]::StartNew()) -Force -Scope Global
+
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 New-Variable -Name "SQL_TABLE_TO_UPDATE" -Value "Storage" -Force -Scope Script -Option ReadOnly
 
 New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 60 -Force -Scope Script -Option ReadOnly
-New-Variable -Name "CREDENTIAL" -Value $(Get-CredentialFromJenkins) -Force -Scope Script -Option ReadOnly
 New-Variable -Name 'INPUT_HASH' -Value  @{
     "Volumes" = @{
         "CLASS_Name" = "Win32_Volume"
@@ -16,23 +21,25 @@ New-Variable -Name 'INPUT_HASH' -Value  @{
     }
 } -Force -Scope Script -Option ReadOnly
 function Invoke-Main {
+    Write-Joblog
     try {
-        Get-WMIDataAsJob -Credentials $CREDENTIAL -InputHash $INPUT_HASH
+        Get-WMIDataAsJob -InputHash $INPUT_HASH
         Get-VolumeDetails
     }
     catch {
-        Write-Error -Message $_.Exception.Message
+        Write-Joblog -Message $_.Exception.Message
         $EXIT_CODE = 1
     }
     finally {
+        Write-Joblog -Completed
         exit $EXIT_CODE
     }
 }
 
 function Get-VolumeDetails {
-    $Timer = [System.Diagnostics.Stopwatch]::StartNew()
+    $Time = [System.Diagnostics.Stopwatch]::StartNew()
     $LastUpdate = (Get-Date).ToString("yyyy-MM-dd HH:mm")
-    while ($null -ne (Get-Job) -and ($Timer.ElapsedMilliseconds -le ($REMOTE_CONNECTION_TIMEOUT_SECONDS * 1000))) {
+    while ($null -ne (Get-Job) -and ($Time.ElapsedMilliseconds -le ($REMOTE_CONNECTION_TIMEOUT_SECONDS * 1000))) {
         $jobName = $null
         $jobName = (Get-Job | Where-Object { $_.State -ne "Running" } | Select-Object -First 1).Name
         if ($null -ne $jobName) {
@@ -54,7 +61,7 @@ function Get-VolumeDetails {
                 $success = $true
             }
             catch {
-                Write-Host "$jobname - $($_.Exception.Message)"
+                Write-Joblog -Message "$jobname - $($_.Exception.Message)"
                 $Script:EXIT_CODE = 1 
             }
             finally {
@@ -64,16 +71,25 @@ function Get-VolumeDetails {
                     $Entry.'LastUpdate' = $LastUpdate
                 }
             }
-            $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName $SQL_TABLE_TO_UPDATE
-            Invoke-SQLquery -Query $updateQuery -Credential $CREDENTIAL 
+            if ($DEBUG) {
+                $Entry | Format-List
+            }
+            else {
+                $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName $SQL_TABLE_TO_UPDATE
+                try {
+                    Invoke-SQLquery -Query $updateQuery
+                }
+                catch {
+                    Write-Joblog -Message $_
+                }
+            }
             Remove-Job -Name $jobName
         }
     }
     $remainingJobs = Get-Job
     if ($null -ne $remainingJobs) {
         Get-Job | Remove-Job -Force
-        $remainingJobs
-        throw "Background jobs were running longer than REMOTE_CONNECTION_TIMEOUT_SECONDS ($REMOTE_CONNECTION_TIMEOUT_SECONDS)"
+        Write-Joblog -Message "Background jobs were running longer than REMOTE_CONNECTION_TIMEOUT_SECONDS ($REMOTE_CONNECTION_TIMEOUT_SECONDS)"
     }
 }
 

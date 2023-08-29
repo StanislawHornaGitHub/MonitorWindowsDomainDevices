@@ -1,14 +1,14 @@
 function Get-PipeLogName {
-    return $("$PIPELINE_LOGS_DIRECTORY\$((Get-Date).ToString("yyyy-MM-dd"))_$($PIPE_NAME.split(".")[0]).txt")
+    return $("$PIPELINE_LOGS_DIRECTORY\$((Get-Date).ToString("yyyy-MM-dd"))_$($SCRIPT_NAME.split(".")[0]).txt")
 }
 
-function Write-Mainlog {
+function Write-Joblog {
     param(
         $Message,
         [switch]$Completed
     )
     if($Message){
-        $LOG_OBJECT.Operations += "$($TIMER.Elapsed.ToString("hh\:mm\:ss\.fff")) - $Message`n"
+        $LOG_OBJECT.Message += "$($TIMER.Elapsed.ToString("hh\:mm\:ss\.fff")) - $Message`n"
     }else{
         if ($Completed) {
             $LOG_OBJECT.End_time = $((Get-Date).ToString("yyyy-MM-dd HH:mm:ss"))
@@ -19,7 +19,7 @@ function Write-Mainlog {
             $Success = $false
             while ($Success -eq $false) {
                 try {
-                    $LOG_OBJECT | Export-Csv -Path $MAIN_LOG_PATH -NoTypeInformation -Append -ErrorAction Stop
+                    $LOG_OBJECT | Export-Csv -Path $JOB_LOG_PATH -NoTypeInformation -Append -ErrorAction Stop
                     $Success = $true
                 }
                 catch {
@@ -29,14 +29,23 @@ function Write-Mainlog {
         }
         else {
             New-Variable -Name "LOG_OBJECT" -Value $([PSCustomObject]@{
-                'Pipeline_name' = $PIPE_NAME
+                'Script_name' = $SCRIPT_NAME
                 'Start_time' = $((Get-Date).ToString("yyyy-MM-dd HH:mm:ss"))
                 'End_time' = $null
                 'Duration' = $null
                 'Exit_code' = $null
                 'Processed_devices' = $null
-                'Operations' = ""
+                'Message' = ""
             }) -Force -Scope Global
         }   
     }
+}
+function Write-Log {
+    param (
+        $Message,
+        $Type,
+        $Path
+    )
+    $Type = $Type.ToUpper()
+    "$((Get-Date).ToString("yyyy.MM.dd HH:mm:ss\.fff")) - $Type : $Message" | Out-File -FilePath $Path -Append
 }
