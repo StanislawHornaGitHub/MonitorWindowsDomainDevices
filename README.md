@@ -42,23 +42,31 @@ displayMode: compact
         dateFormat HH:mm:ss
         axisFormat %H:%M:%S
         section Main_Process
-            Process_Coordinator        :des1, 00:00:00, 2m
+            Process_Coordinator        :des1, 00:00:00, 1m
         section Scripts
-            Get-OSVersionInformation   :active, des1, 00:00:10, 52s
-            Get-DeviceHardwaredetails   :crit, des1, 00:00:30, 52s
+            Get-OSVersionInformation   :active, des1, 00:00:10, 20s
+            Get-DeviceHardwaredetails   :crit, des1, 00:00:20, 20s
         section Background_Jobs
-            PC1 :active,   des1, 00:00:11, 10s
-            PC2 :active,   des1, 00:00:19, 10s
-            PC3 :active,   des1, 00:00:27, 10s
-            PC4 :active,   des1, 00:00:35, 10s
-            PC5 :active,   des1, 00:00:43, 10s
-            PC6 :active,   des1, 00:00:52, 10s
-            PC1 :crit,   des1, 00:00:31, 10s
-            PC2 :crit,   des1, 00:00:39, 10s
-            PC3 :crit,   des1, 00:00:47, 10s
-            PC4 :crit,   des1, 00:00:56, 10s
-            PC5 :crit,   des1, 00:01:04, 10s
-            PC6 :crit,   des1, 00:01:12, 10s
+            PC0 :active,   des1, 00:00:11, 10s
+            PC1 :active,   des1, 00:00:12, 10s
+            PC2 :active,   des1, 00:00:13, 10s
+            PC3 :active,   des1, 00:00:14, 10s
+            PC4 :active,   des1, 00:00:15, 10s
+            PC5 :active,   des1, 00:00:16, 10s
+            PC6 :active,   des1, 00:00:17, 10s
+            PC7 :active,   des1, 00:00:18, 10s
+            PC8 :active,   des1, 00:00:19, 10s
+            PC9 :active,   des1, 00:00:20, 10s
+            PC0 :crit,   des1, 00:00:22, 10s
+            PC1 :crit,   des1, 00:00:23, 10s
+            PC2 :crit,   des1, 00:00:24, 10s
+            PC3 :crit,   des1, 00:00:25, 10s
+            PC4 :crit,   des1, 00:00:26, 10s
+            PC5 :crit,   des1, 00:00:27, 10s
+            PC6 :crit,   des1, 00:00:28, 10s
+            PC7 :crit,   des1, 00:00:29, 10s
+            PC8 :crit,   des1, 00:00:30, 10s
+            PC9 :crit,   des1, 00:00:31, 10s
 ```
 
 # Data model
