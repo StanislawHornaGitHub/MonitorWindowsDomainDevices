@@ -18,7 +18,7 @@ New-Variable -Name "STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER" -Value 0 -Force -Sc
 
 New-Variable -Name "TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS" -Value 60 -Force -Scope Script -Option ReadOnly
 function Invoke-Main {
-    Write-Log -Message "Process started" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+    Write-Log -Message "Process started PID: $($PID)" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
     try {
         Test-RootContents
         Invoke-LogFolderStructure
