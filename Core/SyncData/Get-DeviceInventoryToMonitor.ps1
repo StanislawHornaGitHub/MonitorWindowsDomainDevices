@@ -54,7 +54,6 @@ function Get-ComputerIsActive {
     $LastUpdate = (Get-Date).ToString("yyyy-MM-dd HH:mm")
     # Loop through the devices list
     foreach ($C in $Computer) {
-        Write-Host "$($C.DNSHostName)"
         # Declare entry for the device
         $Entry = [PSCustomObject]@{
             'DNSHostName'   = $($C.DNSHostName)
