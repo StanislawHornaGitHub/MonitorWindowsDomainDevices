@@ -140,7 +140,7 @@ function Start-DataRetrievingJob {
         else {
             # Check if there were any errors
             try {
-                $Output = Receive-Job -Name $Name -ErrorAction Stop
+                Receive-Job -Name $Name -ErrorAction Stop | Out-Null
                 $Entry.'Last_Exit_Code' = 0
             }
             catch {
@@ -213,77 +213,50 @@ function Get-ConfigurationDetails {
 function Stop-ProcessCoordinator {
     if ($STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER -eq 1) {
         Write-Log -Message "Stop process invoked by command STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
-        $Time = [System.Diagnostics.Stopwatch]::StartNew()
-        Write-Log -Message "Entering the loop to wait for running jobs" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
-        while ($null -ne (Get-Job) -and ($Time.ElapsedMilliseconds -le ($TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS * 1000))) {
-            $Name = (Get-Job | Where-Object { ($_.State -ne "Running") } | Select-Object -First 1).Name
-            if ($null -ne $Name) {
-                $Entry = [PSCustomObject]@{
-                    'Name'           = $Name
-                    'Last_Exit_Code' = $null
-                    'Errors'         = $null
-                }
-                try {
-                    $Output = Receive-Job -Name $Name -ErrorAction Stop
-                    $Entry.'Last_Exit_Code' = 0
-                }
-                catch {
-                    Write-Log -Message "$Name - $_" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
-                    $Entry.'Errors' = $_
-                    $Entry.'Last_Exit_Code' = 1
-                }
-                Remove-Job -Name $Name -Force
-                Write-Log -Message "Job $Name removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
-                $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
-                Invoke-SQLquery -Query $Query
-            }
-        }
-        Write-Log -Message "Exiting waiting loop" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
-        $remainingJobs = Get-Job
-        if ($null -ne $remainingJobs) {
-            Get-Job | Remove-Job -Force
-            Write-log -Message "Background jobs were running longer than TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS ($TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS)" `
-                -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH
-        }
+        Stop-AllJobs
         return $false
     }
     if ($STOP_PROCESS_COORDINATOR -eq 1) {
         Write-Log -Message "Stop process invoked by command STOP_PROCESS_COORDINATOR" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
-        $Time = [System.Diagnostics.Stopwatch]::StartNew()
-        Write-Log -Message "Entering the loop to wait for running jobs" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
-        while ($null -ne (Get-Job) -and ($Time.ElapsedMilliseconds -le ($TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS * 1000))) {
-            $Name = (Get-Job | Where-Object { ($_.State -ne "Running") } | Select-Object -First 1).Name
-            if ($null -ne $Name) {
-                $Entry = [PSCustomObject]@{
-                    'Name'           = $Name
-                    'Last_Exit_Code' = $null
-                    'Errors'         = $null
-                }
-                try {
-                    $Output = Receive-Job -Name $Name -ErrorAction Stop
-                    $Entry.'Last_Exit_Code' = 0
-                }
-                catch {
-                    Write-Log -Message "$Name - $_" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
-                    $Entry.'Errors' = $_
-                    $Entry.'Last_Exit_Code' = 1
-                }
-                Remove-Job -Name $Name -Force
-                Write-Log -Message "Job $Name removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
-                $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
-                Invoke-SQLquery -Query $Query
-            }
-        }
-        Write-Log -Message "Exiting waiting loop" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
-        $remainingJobs = Get-Job
-        if ($null -ne $remainingJobs) {
-            Get-Job | Remove-Job -Force
-            Write-log -Message "Background jobs were running longer than TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS ($TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS)" `
-                -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH
-        }
+        Stop-AllJobs
         return $false
     }
     return $true
+}
+function Stop-AllJobs {
+    $Time = [System.Diagnostics.Stopwatch]::StartNew()
+    Write-Log -Message "Entering the loop to wait for running jobs" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+    while ($null -ne (Get-Job) -and ($Time.ElapsedMilliseconds -le ($TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS * 1000))) {
+        $Name = (Get-Job | Where-Object { ($_.State -ne "Running") } | Select-Object -First 1).Name
+        if ($null -ne $Name) {
+            $Entry = [PSCustomObject]@{
+                'Name'           = $Name
+                'Last_Exit_Code' = $null
+                'Errors'         = $null
+            }
+            try {
+                Receive-Job -Name $Name -ErrorAction Stop | Out-Null
+                $Entry.'Last_Exit_Code' = 0
+            }
+            catch {
+                Write-Log -Message "$Name - $_" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
+                $Entry.'Errors' = $_
+                $Entry.'Last_Exit_Code' = 1
+            }
+            Remove-Job -Name $Name -Force
+            Write-Log -Message "Job $Name removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+            $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
+            Invoke-SQLquery -Query $Query
+        }
+    }
+    Write-Log -Message "Exiting waiting loop" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+    $remainingJobs = Get-Job
+    if ($null -ne $remainingJobs) {
+        Get-Job | Remove-Job -Force
+        Write-log -Message "Background jobs were running longer than TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS ($TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS)" `
+            -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH
+    }
+    
 }
 function Test-SQLserver {
     while ($(Test-SQLserverAvailability -BypassEmptyInventory $BYPASS_EMPTY_INVENTORY) -eq $false) {
