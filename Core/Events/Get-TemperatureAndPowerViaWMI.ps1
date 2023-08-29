@@ -6,21 +6,26 @@ param(
     [switch]$DEBUG
 )
 Import-Module "./Core/Import-AllModules.psm1"
+New-Variable -Name "SCRIPT_NAME" -Value "Get-TemperatureAndPowerViaWMI" -Force -Scope Global -Option ReadOnly
+New-Variable -Name "TIMER" -Value $([System.Diagnostics.Stopwatch]::StartNew()) -Force -Scope Global
+
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 New-Variable -Name "SQL_TABLE_TO_UPDATE" -Value "PowerAndTemperature" -Force -Scope Script -Option ReadOnly
 
 New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 60 -Force -Scope Script -Option ReadOnly
 
 function Invoke-Main {
+    Write-Joblog
     try {
         Get-OpenHardwareMonitorAsJob
         Get-OpenHardwareMonitorFromJob
     }
     catch {
-        Write-Error -Message $_.Exception.Message
+        Write-Joblog -Message $_.Exception.Message
         $EXIT_CODE = 1
     }
     finally {
+        Write-Joblog -Completed
         exit $EXIT_CODE
     }
 }
@@ -131,31 +136,31 @@ function Get-OpenHardwareMonitorFromJob {
                 $success = $true
             }
             catch {
-                Write-Host "$jobname - $($_.Exception.Message)"
+                Write-Joblog -Message "$jobname - $($_.Exception.Message)"
                 $Script:EXIT_CODE = 1 
             }
             finally {
                 if ($success) {
-                    if ($null -eq $Output) {
-                        Write-Host "$jobname is null"
+                    $Entry.CPU_Temperature_Current = $Output.'Temperature_CPU'.Current
+                    $Entry.CPU_Temperature_Min = $Output.'Temperature_CPU'.Minimum
+                    $Entry.CPU_Temperature_Max = $Output.'Temperature_CPU'.Maximum
+                    $Entry.GPU_Temperature_Current = $Output.'Temperature_GPU'.Current
+                    $Entry.GPU_Temperature_Min = $Output.'Temperature_GPU'.Minimum
+                    $Entry.GPU_Temperature_Max = $Output.'Temperature_GPU'.Maximum
+                    $Entry.PowerConsumption_Current = $Output.'Power'.Current
+                    $Entry.PowerConsumption_Min = $Output.'Power'.Minimum
+                    $Entry.PowerConsumption_Max = $Output.'Power'.Maximum
+                    $Entry.TimeStamp = $TimeStamp
+                    if ($DEBUG) {
+                        $Entry | Format-List
                     }
                     else {
-                        $Entry.CPU_Temperature_Current = $Output.'Temperature_CPU'.Current
-                        $Entry.CPU_Temperature_Min = $Output.'Temperature_CPU'.Minimum
-                        $Entry.CPU_Temperature_Max = $Output.'Temperature_CPU'.Maximum
-                        $Entry.GPU_Temperature_Current = $Output.'Temperature_GPU'.Current
-                        $Entry.GPU_Temperature_Min = $Output.'Temperature_GPU'.Minimum
-                        $Entry.GPU_Temperature_Max = $Output.'Temperature_GPU'.Maximum
-                        $Entry.PowerConsumption_Current = $Output.'Power'.Current
-                        $Entry.PowerConsumption_Min = $Output.'Power'.Minimum
-                        $Entry.PowerConsumption_Max = $Output.'Power'.Maximum
-                        $Entry.TimeStamp = $TimeStamp
-                        if ($DEBUG) {
-                            $Entry | Format-List
-                        }
-                        else {
                         $insertQuery = Get-SQLinsertSection -Entry $Entry -TableName $SQL_TABLE_TO_UPDATE
-                        Invoke-SQLquery -Query $insertQuery
+                        try {
+                            Invoke-SQLquery -Query $insertQuery 
+                        }
+                        catch {
+                            Write-Joblog -Message $_
                         }
                     }
                 }
@@ -166,8 +171,7 @@ function Get-OpenHardwareMonitorFromJob {
     $remainingJobs = Get-Job
     if ($null -ne $remainingJobs) {
         Get-Job | Remove-Job -Force
-        $remainingJobs
-        throw "Background jobs were running longer than REMOTE_CONNECTION_TIMEOUT_SECONDS ($REMOTE_CONNECTION_TIMEOUT_SECONDS)"
+        Write-Joblog -Message "Background jobs were running longer than REMOTE_CONNECTION_TIMEOUT_SECONDS ($REMOTE_CONNECTION_TIMEOUT_SECONDS)"
     }
 }
 

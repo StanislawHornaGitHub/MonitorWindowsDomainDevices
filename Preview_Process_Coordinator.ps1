@@ -52,8 +52,7 @@ function Invoke-MainLoop {
             if ($jobSleeptimeMiliseconds -ge 0) {
                 Write-Host "Start job $S" -ForegroundColor Green
                 ### Start Appropriate job ###
-                Start-DataRetrievingJob -Name $S -Type "SyncData" 
-
+                Start-DataRetrievingJob -Name $S -Type "SyncData"
             }
             else {
                 # If time difference was -lt 0 than we have the sleep time for this job
@@ -75,7 +74,6 @@ function Invoke-MainLoop {
             if ($jobSleeptimeMiliseconds -ge 0) {
                 Write-Host "Start job $O" -ForegroundColor Green
                 ### Start Appropriate job ###
-                
                 Start-DataRetrievingJob -Name $O -Type "Objects"
             }
             else {
@@ -98,7 +96,6 @@ function Invoke-MainLoop {
             if ($jobSleeptimeMiliseconds -ge 0) {
                 Write-Host "Start job $E" -ForegroundColor Green
                 ### Start Appropriate job ###
-
                 Start-DataRetrievingJob -Name $E -Type "Events"
             }
             else {

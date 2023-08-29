@@ -6,6 +6,9 @@ param(
     [switch]$DEBUG
 )
 Import-Module "./Core/Import-AllModules.psm1"
+New-Variable -Name "SCRIPT_NAME" -Value "Get-BootInformation" -Force -Scope Global -Option ReadOnly
+New-Variable -Name "TIMER" -Value $([System.Diagnostics.Stopwatch]::StartNew()) -Force -Scope Global
+
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 New-Variable -Name "SQL_TABLE_TO_UPDATE" -Value "OperatingSystem" -Force -Scope Script -Option ReadOnly
 
@@ -27,15 +30,17 @@ New-Variable -Name 'INPUT_HASH' -Value  @{
 } -Force -Scope Script -Option ReadOnly
 
 function Invoke-Main {
+    Write-Joblog
     try {
         Get-BootInformationAsJob
         Get-BootInformationFromJob
     }
     catch {
-        Write-Error -Message $_.Exception.Message
+        Write-Joblog -Message $_.Exception.Message
         $EXIT_CODE = 1
     }
     finally {
+        Write-Joblog -Completed
         exit $EXIT_CODE
     }
 }
@@ -112,7 +117,7 @@ function Get-BootInformationFromJob {
                 $success = $true
             }
             catch {
-                Write-Host "$jobname - $($_.Exception.Message)"
+                Write-Joblog -Message "$jobname - $($_.Exception.Message)"
                 $Script:EXIT_CODE = 1 
             }
             finally {
@@ -120,8 +125,6 @@ function Get-BootInformationFromJob {
                     $Entry.LastBootTime = $(Convert-WMIDateTime -DateTimeString $($Output.'WMI'.LastBootTime.LastBootUpTime))
                     $Entry.FastStartEnabled = [bool]$($Output.'Registry'.'FastStart'."HiberbootEnabled")
                     $Entry.LastBootType = $(Get-BootTypeFromHex -MessageString $($Output.'LastBootType') )
-
-
                 }
             }
             if ($DEBUG) {
@@ -129,7 +132,13 @@ function Get-BootInformationFromJob {
             }
             else {
                 $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName $SQL_TABLE_TO_UPDATE
-                Invoke-SQLquery -Query $updateQuery
+                try {
+                    Invoke-SQLquery -Query $updateQuery
+                }
+                catch {
+                    Write-Joblog -Message $_
+                }
+                
             }
             Remove-Job -Name $jobName
         }
@@ -137,8 +146,7 @@ function Get-BootInformationFromJob {
     $remainingJobs = Get-Job
     if ($null -ne $remainingJobs) {
         Get-Job | Remove-Job -Force
-        $remainingJobs
-        throw "Background jobs were running longer than REMOTE_CONNECTION_TIMEOUT_SECONDS ($REMOTE_CONNECTION_TIMEOUT_SECONDS)"
+        Write-Joblog -Message "Background jobs were running longer than REMOTE_CONNECTION_TIMEOUT_SECONDS ($REMOTE_CONNECTION_TIMEOUT_SECONDS)"
     }
 }
 
