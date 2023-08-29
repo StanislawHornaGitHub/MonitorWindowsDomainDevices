@@ -115,7 +115,7 @@ function Get-OSVersionAsJob {
     }
 }
 function Get-WindowsVersionFromJob {
-    $Timer = [System.Diagnostics.Stopwatch]::StartNew()
+    $Time = [System.Diagnostics.Stopwatch]::StartNew()
     $LastUpdate = (Get-Date).ToString("yyyy-MM-dd HH:mm")
     while ($null -ne (Get-Job) -and ($Time.ElapsedMilliseconds -le ($REMOTE_CONNECTION_TIMEOUT_SECONDS * 1000))) {
         $jobName = $null
