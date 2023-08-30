@@ -215,6 +215,7 @@ function Get-ConfigurationDetails {
         -Value $($Config.Commands.Stop_Process_and_Disable_Task_Scheduler) -Force -Scope Global
     # Go through imported Config.json and create a Hashtable to work in main loop
     $hash = @{}
+    $skippedScripts = @()
     # Loop through the root branches in file
     foreach ($Type in $Config.PSObject.Properties) {
         # Skip the iteration if branch is called Modules or Commands,
@@ -232,6 +233,7 @@ function Get-ConfigurationDetails {
             # Skip the itaration if the script refresh interval is set to 0,
             # those will be skipped from periodical triggering
             if ($property.Value.Refresh_Interval_in_seconds -le 0) {
+                $skippedScripts += $($property.Name)
                 continue
             }
             # Find the lowest refresh interval in seconds
@@ -251,7 +253,18 @@ function Get-ConfigurationDetails {
         $Type = $LastExecution[$i].Type
         $Name = $LastExecution[$i].Name
         $LastRefresh = $LastExecution[$i].Last_Start_Time
-        $hash.$Type.$Name.Last_Refresh_time = $LastRefresh
+        try {
+            $hash.$Type.$Name.Last_Refresh_time = $LastRefresh
+        }
+        catch {
+            if($Name -in $skippedScripts){
+                Write-Log -Message "$Type script $Name has refresh interval set to 0, but it was running in the past" -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH
+            }else{
+                Write-Log -Message "$Type script $Name does not exist in config file" -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH
+            }
+            
+        }
+        
     }
     # Return built hash
     return $hash
