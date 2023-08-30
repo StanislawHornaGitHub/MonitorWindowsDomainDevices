@@ -1,6 +1,31 @@
 <#
-    .DESCRIPTION
+.SYNOPSIS
     Script to run all processes for monitoring purposes.
+
+.DESCRIPTION
+    Script running constantly in infinite loop which is starting scripts to retrieve data.
+    Scripts are run in Powershell Background Jobs.
+    Refresh intervals are collected from Config.json on each loop iteration.
+    To gracefully stop the process use commands in Config.json by changing 0 to 1,
+    for the command which you would like to invoke.
+
+.INPUTS
+    Content of Config.json file
+
+.OUTPUTS
+    Log file Stored in .\Log catalog
+
+.NOTES
+
+    Version:            1.0
+    Author:             Stanisław Horna
+    Mail:               stanislawhorna@outlook.com
+    GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
+    Creation Date:      17-Aug-2023
+    ChangeLog:
+
+    Date            Who                     What
+
 #>
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "SCHEDULED_TASK_NAME" -Value "Process_Coordinator" -Force -Scope Script -Option ReadOnly
@@ -271,7 +296,7 @@ function Disable-ProcessCoordinatorScheduledTask {
         Disable-ScheduledTask -TaskName $SCHEDULED_TASK_NAME `
             -TaskPath $SCHEDULED_TASK_PATH `
             -ErrorAction Stop | Out-Null
-            Write-Log -Message "Scheduled task successfully disabled" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+        Write-Log -Message "Scheduled task successfully disabled" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
     }
     catch {
         Write-Log -Message "$($_.Exception.Message)" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH

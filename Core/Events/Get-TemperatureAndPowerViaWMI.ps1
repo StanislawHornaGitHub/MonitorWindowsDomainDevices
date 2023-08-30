@@ -1,4 +1,50 @@
 <#
+.SYNOPSIS
+    Script to get Power consumption and CPU, GPU Temperature
+
+.DESCRIPTION
+    Script is connecting to each device marked as active in SQL Inventory Table and retrieving information.
+    For each device script is creating separate Powershell Background job responsible for collecting data.
+    Results are captured and pushed to SQL OperatingSystem Table
+
+    To collect such data Open Hardware Monitor is required which is providing such data to WMI.
+    On each device Open Hardware Monitor is started to collect data and right after it is closed.
+
+.INPUTS
+    DEBUG - switch - If it is set than no data will be pushed to the SQL server,
+                    everything will be displayed in the console.
+                    Remember that even if this param is used the connection to the SQL Server is still required,
+                    to get the list of currently active devices
+
+.OUTPUTS
+    Based on input DEBUG setting data is displayed in the console or pushed to the SQL Server
+
+    Open Hardware Monitor has Min, Max and current value for each sensor.
+    Due to the fact that some sensors are active faster the others those Min Max current values can be different.
+        TimeStamp - Current time
+        CPU_Temperature_Current
+        CPU_Temperature_Min
+        CPU_Temperature_Max
+        GPU_Temperature_Current
+        GPU_Temperature_Min
+        GPU_Temperature_Max
+        PowerConsumption_Current
+        PowerConsumption_Min
+        PowerConsumption_Max
+
+.NOTES
+
+    Version:            1.0
+    Author:             Stanisław Horna
+    Mail:               stanislawhorna@outlook.com
+    GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
+    Creation Date:      22-Aug-2023
+    ChangeLog:
+
+    Date            Who                     What
+
+#>
+<#
     .DESCRIPTION
     Script to get Temperature
 #>

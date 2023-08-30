@@ -1,6 +1,36 @@
 <#
-    .DESCRIPTION
-    Script to get Boot details
+.SYNOPSIS
+    Script to get Boot details from monitored devices.
+
+.DESCRIPTION
+    Script is connecting to each device marked as active in SQL Inventory Table and retrieving information.
+    For each device script is creating separate Powershell Background job responsible for collecting data.
+    Results are captured and pushed to SQL OperatingSystem Table
+
+.INPUTS
+    DEBUG - switch - If it is set than no data will be pushed to the SQL server,
+                    everything will be displayed in the console.
+                    Remember that even if this param is used the connection to the SQL Server is still required,
+                    to get the list of currently active devices
+
+.OUTPUTS
+    Based on input DEBUG setting data is displayed in the console or pushed to the SQL Server
+
+        FastStartEnabled - [bool] True - if Fast startup is enabled on the device
+        LastBootTime - [datetime] - the date when the system started up 
+        LastBootType - [Normal boot / Fast start] - type of the last boot
+
+.NOTES
+
+    Version:            1.0
+    Author:             Stanisław Horna
+    Mail:               stanislawhorna@outlook.com
+    GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
+    Creation Date:      17-Aug-2023
+    ChangeLog:
+
+    Date            Who                     What
+
 #>
 param(
     [switch]$DEBUG
@@ -52,7 +82,7 @@ function Get-BootInformationAsJob {
                 $ComputerName,
                 $InputHash
             )
-            # Collect data from WMI
+            # Collect data from WMI and Registry
             $Output = Invoke-Command -ComputerName $ComputerName -ScriptBlock {
                 param(
                     $InputHash
@@ -67,6 +97,7 @@ function Get-BootInformationAsJob {
                     $Output.'Registry'.Add($D, @{})
                     foreach ($P in $InputHash.'Registry'.$D.Property) {
                         try {
+                            # Gather data from registry path
                             $Output.'Registry'.$D.Add($P, (Get-Item -path $($InputHash.'Registry'.$D.RegistryPath)`
                                         -ErrorAction Stop`
                                 ).GetValue($P))
@@ -76,8 +107,10 @@ function Get-BootInformationAsJob {
                         }
                     }
                 }
+                # Rebuild structure from input hash
                 foreach ($D in $InputHash.'WMI'.Keys) {
                     try {
+                        # Gather data from WMI
                         $Output.'WMI'.Add($D, $(Get-WmiObject -Class $($InputHash.'WMI'.$D.CLASS_Name) `
                                     -Property $($InputHash.'WMI'.$D.Property) `
                                     -Filter $($InputHash.'WMI'.$D.Filter) `
@@ -88,6 +121,7 @@ function Get-BootInformationAsJob {
                         throw $_.Exception.Message
                     }
                 }
+                # Gather data form Event log
                 $Output.'LastBootType' = (Get-WinEvent -ProviderName "Microsoft-Windows-Kernel-boot" `
                         -FilterXPath '*[System[EventID=27]]' `
                         -MaxEvents 1 ).Message
@@ -145,7 +179,7 @@ function Get-BootInformationFromJob {
     }
     $remainingJobs = Get-Job
     if ($null -ne $remainingJobs) {
-        Get-Job | Remove-Job -Force
+        $remainingJobs | Remove-Job -Force
         Write-Joblog -Message "Background jobs were running longer than REMOTE_CONNECTION_TIMEOUT_SECONDS ($REMOTE_CONNECTION_TIMEOUT_SECONDS)"
     }
 }

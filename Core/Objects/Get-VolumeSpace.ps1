@@ -1,6 +1,41 @@
 <#
-    .DESCRIPTION
-    Script to get Volumes space status
+.SYNOPSIS
+    Script to get volumes' spaces 
+
+.DESCRIPTION
+    Script is connecting to each device marked as active in SQL Inventory Table and retrieving information.
+    For each device script is creating separate Powershell Background job responsible for collecting data.
+    Results are captured and pushed to SQL OperatingSystem Table
+
+.INPUTS
+    DEBUG - switch - If it is set than no data will be pushed to the SQL server,
+                    everything will be displayed in the console.
+                    Remember that even if this param is used the connection to the SQL Server is still required,
+                    to get the list of currently active devices
+
+.OUTPUTS
+    Based on input DEBUG setting data is displayed in the console or pushed to the SQL Server
+
+        SystemDriveCapacity_GB - Capacity of the volume where OS is installed
+        SystemDriveFreeSpace_GB - Free space of the volume where OS is installed
+        SystemDriveUsed - Percentage of used space
+        AllDriveCapacity_GB - Capacity of all volumes on the device
+        AllDriveFreeSpace_GB - Free space of all volumes on the device
+        AllDriveUsed - Percentage of overall usage
+        OtherDrivesDetails - Listed partitions with letter, overall capacity and free space
+                            (e.g D:\ - 1863.01GB - 1231.72GB)
+
+.NOTES
+
+    Version:            1.0
+    Author:             Stanisław Horna
+    Mail:               stanislawhorna@outlook.com
+    GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
+    Creation Date:      14-Aug-2023
+    ChangeLog:
+
+    Date            Who                     What
+
 #>
 param(
     [switch]$DEBUG
@@ -88,7 +123,7 @@ function Get-VolumeDetails {
     }
     $remainingJobs = Get-Job
     if ($null -ne $remainingJobs) {
-        Get-Job | Remove-Job -Force
+        $remainingJobs | Remove-Job -Force
         Write-Joblog -Message "Background jobs were running longer than REMOTE_CONNECTION_TIMEOUT_SECONDS ($REMOTE_CONNECTION_TIMEOUT_SECONDS)"
     }
 }

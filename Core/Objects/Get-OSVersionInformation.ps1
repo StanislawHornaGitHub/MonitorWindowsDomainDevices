@@ -1,6 +1,39 @@
 <#
-    .DESCRIPTION
-    Script to get OS properties, version, build, activation status
+.SYNOPSIS
+    Script to get Device specification, CPU model, amount of RAM memory etc.
+
+.DESCRIPTION
+    Script is connecting to each device marked as active in SQL Inventory Table and retrieving information.
+    For each device script is creating separate Powershell Background job responsible for collecting data.
+    Results are captured and pushed to SQL OperatingSystem Table
+
+.INPUTS
+    DEBUG - switch - If it is set than no data will be pushed to the SQL server,
+                    everything will be displayed in the console.
+                    Remember that even if this param is used the connection to the SQL Server is still required,
+                    to get the list of currently active devices
+
+.OUTPUTS
+    Based on input DEBUG setting data is displayed in the console or pushed to the SQL Server
+    
+        CurrentlyLoggedOn - Currently loged on user
+        OS_Version - OS version (e.g. Microsoft Windows Server 2022 Datacenter)
+        OS_Display_Version - OS version based on installed patches (e.g. 21H2)
+        OS_build - OS build number (e.g. 10.0.20348.1487)
+        OS_Architecture - [32bit / 64bit]
+        isLicenseActivated - indicates if windows is activated or not
+
+.NOTES
+
+    Version:            1.0
+    Author:             Stanisław Horna
+    Mail:               stanislawhorna@outlook.com
+    GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
+    Creation Date:      10-Aug-2023
+    ChangeLog:
+
+    Date            Who                     What
+
 #>
 param(
     [switch]$DEBUG
@@ -181,7 +214,7 @@ function Get-WindowsVersionFromJob {
     }
     $remainingJobs = Get-Job
     if ($null -ne $remainingJobs) {
-        Get-Job | Remove-Job -Force
+        $remainingJobs | Remove-Job -Force
         Write-Joblog -Message "Background jobs were running longer than REMOTE_CONNECTION_TIMEOUT_SECONDS ($REMOTE_CONNECTION_TIMEOUT_SECONDS)"
     }
 }
