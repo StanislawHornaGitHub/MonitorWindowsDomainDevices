@@ -49,9 +49,13 @@ New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 60 -Force -Scope S
 
 New-Variable -Name 'INPUT_HASH' -Value @{
     'Registry' = @{
-        "OS" = @{
+        "OS"        = @{
             "RegistryPath" = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion"
             "Property"     = @('ReleaseID', 'DisplayVersion', 'UBR')
+        }
+        "FastStart" = @{
+            "RegistryPath" = "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Power"
+            "Property"     = @("HiberbootEnabled")
         }
     }
     'WMI'      = @{
@@ -69,6 +73,11 @@ New-Variable -Name 'INPUT_HASH' -Value @{
             "CLASS_Name" = "Win32_process"
             "Property"   = "*"
             "Filter"     = "Name='explorer.exe' OR Name='cmd.exe'"
+        }
+        'LastBootTime'      = @{
+            "CLASS_Name" = 'Win32_OperatingSystem'
+            "Property"   = @("LastBootUpTime")
+            "Filter"     = ""
         }
     }
 } -Force -Scope Script -Option ReadOnly
@@ -102,8 +111,9 @@ function Get-OSVersionAsJob {
                     $InputHash
                 )
                 $Output = @{
-                    'Registry' = @{}
-                    'WMI'      = @{}
+                    'Registry'     = @{}
+                    'WMI'          = @{}
+                    'LastBootType' = ""
                 }
                 # Rebuild structure from input hash
                 foreach ($D in $InputHash.'Registry'.Keys) {
@@ -141,6 +151,10 @@ function Get-OSVersionAsJob {
                     Write-Host $_
                     $Output.'WMI'.'CurrentlyLoggedOn' = "Nobody is currently logged in"
                 }
+                # Gather data form Event log
+                $Output.'LastBootType' = (Get-WinEvent -ProviderName "Microsoft-Windows-Kernel-boot" `
+                        -FilterXPath '*[System[EventID=27]]' `
+                        -MaxEvents 1 ).Message
                 return $Output
             } -ArgumentList $InputHash
             return $Output
@@ -164,6 +178,9 @@ function Get-WindowsVersionFromJob {
                 'OS_build'           = ""
                 'OS_Architecture'    = ""
                 'isLicenseActivated' = $false
+                'FastStartEnabled'   = $null
+                'LastBootTime'       = $null
+                'LastBootType'       = $null
                 'Error'              = ""
             }
             $success = $false
@@ -192,6 +209,10 @@ function Get-WindowsVersionFromJob {
                         $Entry.'OS_Display_Version' = $Output.'Registry'.OS.ReleaseID
                     }
 
+                    $Entry.LastBootTime = $(Convert-WMIDateTime -DateTimeString $($Output.'WMI'.LastBootTime.LastBootUpTime))
+                    $Entry.FastStartEnabled = [bool]$($Output.'Registry'.'FastStart'."HiberbootEnabled")
+                    $Entry.LastBootType = $(Get-BootTypeFromHex -MessageString $($Output.'LastBootType') )
+
                     $Entry.'LastUpdate' = $LastUpdate
                 }
             }
@@ -216,6 +237,26 @@ function Get-WindowsVersionFromJob {
     if ($null -ne $remainingJobs) {
         $remainingJobs | Remove-Job -Force
         Write-Joblog -Message "Background jobs were running longer than REMOTE_CONNECTION_TIMEOUT_SECONDS ($REMOTE_CONNECTION_TIMEOUT_SECONDS)"
+    }
+}
+function Get-BootTypeFromHex {
+    param(
+        $MessageString
+    )
+    if ($MessageString.Length -le 4) {
+        return $null
+    }
+    $Hex = $MessageString.Substring($($MessageString.Length - 4), 3)
+    switch ($Hex) {
+        "0x0" {
+            return "Normal boot"
+        }
+        "0x1" {
+            return "Fast start"
+        }
+        "0x2" {
+            return "Wakeup from Hibernation"
+        }
     }
 }
 
