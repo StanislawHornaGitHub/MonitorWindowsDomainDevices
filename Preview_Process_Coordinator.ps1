@@ -186,7 +186,7 @@ function Start-DataRetrievingJob {
     Start-Job -Name $Name `
         -InitializationScript { Set-Location $env:DEVICE_MONITORING_ROOT_DIRECTORY } `
         -FilePath $("./Core/$Type/$Name")
-
+    # Write Log and update Last execution date in SQL
     Write-Log -Message "Job $Name started" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
     Invoke-UpdateStartLastExecution -Name $Name -Type $Type
 }
@@ -200,51 +200,71 @@ function Invoke-UpdateStartLastExecution {
         'Type'            = $Type
         'Last_Start_Time' = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
     }
+    # Create appropriate Query 
     $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
+    # Execute Query on the Server
     Invoke-SQLquery -Query $Query
 }
 function Get-ConfigurationDetails {
+    # Read Config.json file
     $Config = Get-Content -Path $CONFIG_FILEPATH | ConvertFrom-Json
+    # Place the Command statuses from file to the variables
     New-Variable -Name "STOP_PROCESS_COORDINATOR" `
         -Value $($Config.Commands.Stop_Process_Coordinator) -Force -Scope Global
     New-Variable -Name "STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER" `
         -Value $($Config.Commands.Stop_Process_and_Disable_Task_Scheduler) -Force -Scope Global
-    
+    # Go through imported Config.json and create a Hashtable to work in main loop
     $hash = @{}
+    # Loop through the root branches in file
     foreach ($Type in $Config.PSObject.Properties) {
+        # Skip the iteration if branch is called Modules or Commands,
+        # because there are no scripts which should be triggered periodically
         if ((($Type.Name) -eq "Modules") -or (($Type.Name) -eq "Commands")) {
             continue
         }
+        # Add key for current branch
         $hash[$Type.Name] = @{}
+        # Set the default last execution date 
+        # (in case if there are no information in SQL about last execution)
         $defaultDate = (Get-Date).AddDays(-360)
+        # Loop through the scripts in the current branch
         foreach ($property in $Config.($Type.Name).PSObject.Properties) {
+            # Skip the itaration if the script refresh interval is set to 0,
+            # those will be skipped from periodical triggering
             if ($property.Value.Refresh_Interval_in_seconds -le 0) {
                 continue
             }
+            # Find the lowest refresh interval in seconds
             if ($property.Value.Refresh_Interval_in_seconds -le $MAX_SLEEP_INTERVAL) {
                 $Script:MAX_SLEEP_INTERVAL = $property.Value.Refresh_Interval_in_seconds
             }
+            # Add the script entry to the result hash with default last refresh date
             $hash.($Type.Name)[$property.Name] = $property.Value
             $hash.($Type.Name).($property.Name) | `
                 Add-Member -MemberType NoteProperty -Name "Last_Refresh_time" -Value $defaultDate
         }
     }
+    # Run the SQL Query and get last execution dates
     $LastExecution = Get-LastExecution
+    # Loop through data from SQL and overwrite the default last refresh date with the actual one
     for ($i = 0; $i -lt $LastExecution.Count; $i++) {
         $Type = $LastExecution[$i].Type
         $Name = $LastExecution[$i].Name
         $LastRefresh = $LastExecution[$i].Last_Start_Time
         $hash.$Type.$Name.Last_Refresh_time = $LastRefresh
     }
+    # Return built hash
     return $hash
 }
 function Stop-ProcessCoordinator {
+    # Check if STOP_PROCESS_COORDINATOR was set to 1 
     if ($STOP_PROCESS_COORDINATOR -eq 1) {
         Write-Log -Message "Stop process invoked by command STOP_PROCESS_COORDINATOR" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
         Stop-AllJobs
 
         return $false
     }
+    # Check if STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER was set to 1 
     if ($STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER -eq 1) {
         Write-Log -Message "Stop process invoked by command STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
         Stop-AllJobs
@@ -255,16 +275,22 @@ function Stop-ProcessCoordinator {
     return $true
 }
 function Stop-AllJobs {
+    # Set the timer to monitor the time spent on waiting for jobs
     $Time = [System.Diagnostics.Stopwatch]::StartNew()
     Write-Log -Message "Entering the loop to wait for running jobs" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+    # Loop until there will be no jobs left or the time will be over
     while ($null -ne (Get-Job) -and ($Time.ElapsedMilliseconds -le ($TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS * 1000))) {
+        # Get the first job name which is not running
         $Name = (Get-Job | Where-Object { ($_.State -ne "Running") } | Select-Object -First 1).Name
+        # If there is no such job continue to the next iteration
         if ($null -ne $Name) {
+            # Create entry to push to the SQL statuses
             $Entry = [PSCustomObject]@{
                 'Name'           = $Name
                 'Last_Exit_Code' = $null
                 'Errors'         = $null
             }
+            # Get job output
             try {
                 Receive-Job -Name $Name -ErrorAction Stop | Out-Null
                 $Entry.'Last_Exit_Code' = 0
@@ -275,14 +301,18 @@ function Stop-AllJobs {
                 $Entry.'Last_Exit_Code' = 1
             }
             Remove-Job -Name $Name -Force
+            # Write Log and update information in SQL
             Write-Log -Message "Job $Name removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
             $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
             Invoke-SQLquery -Query $Query
         }
     }
     Write-Log -Message "Exiting waiting loop" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+    # Get jobs which did not end in waiting period
     $remainingJobs = Get-Job
+    # if there are no such jobs just continue
     if ($null -ne $remainingJobs) {
+        # Stop all remaining jobs remove them and write a log
         $remainingJobs | Stop-Job -Confirm:$false
         $remainingJobs | Remove-Job -Force
         Write-log -Message "Background jobs were running longer than TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS ($TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS)" `
@@ -292,6 +322,7 @@ function Stop-AllJobs {
 }
 function Disable-ProcessCoordinatorScheduledTask {
     Write-Log -Message "Disable scheduled task invoked" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+    # Disable task responisble for auto start of Process Coordinator
     try {
         Disable-ScheduledTask -TaskName $SCHEDULED_TASK_NAME `
             -TaskPath $SCHEDULED_TASK_PATH `
@@ -303,16 +334,19 @@ function Disable-ProcessCoordinatorScheduledTask {
     }
 }
 function Test-SQLserver {
+    # Wait until the SQL Server will be able to comunicate with the Process Server
     while ($(Test-SQLserverAvailability -BypassEmptyInventory $BYPASS_EMPTY_INVENTORY) -eq $false) {
         Start-Sleep -Seconds $TEST_SQL_SLEEP_TIME_SECONDS
     }
     Write-Log -Message "SQL Server Availability passed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
 }
 function Invoke-LogFolderStructure {
+    # Create catalog for main logs
     if (-not (Test-Path -Path $LOGS_ROOT_DIRECTORY)) {
         New-Item -ItemType Directory -Path $LOGS_ROOT_DIRECTORY | Out-Null
         Write-Log -Message "Logs root directiory created" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
     }
+    # Create catalog for job logs
     if (-not (Test-Path -Path "$LOGS_ROOT_DIRECTORY\Job")) {
         New-Item -ItemType Directory -Path "$LOGS_ROOT_DIRECTORY\Job" | Out-Null
         Write-Log -Message "Logs job directiory created" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
@@ -320,9 +354,11 @@ function Invoke-LogFolderStructure {
     Write-Log -Message "Logs structure completed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
 }
 function Test-RootContents {
+    # Read Config.json file
     $Config = Get-Content -Path $CONFIG_FILEPATH | ConvertFrom-Json
     $Status = $true
     # Modules check
+    # Loop through each module path and check if file exists
     foreach ($module in $Config.Modules) {
         if (-not (Test-Path "./Core/$module")) {
             Write-Log -Message "Module $module is missing" -Path $PROCESS_COORDINATOR_LOG_PATH
@@ -330,6 +366,7 @@ function Test-RootContents {
         }
     }
     # Scripts check
+    # Loop through each script path and check if file exists
     foreach ($folder in ($Config | Get-Member -MemberType NoteProperty).Name) {
         foreach ($file in ($Config.$folder | Get-Member -MemberType NoteProperty).Name) {
             if ((-not (Test-Path "./Core/$folder/$file")) -and ($folder -ne "Commands")) {
@@ -344,9 +381,11 @@ function Test-RootContents {
     Write-Log -Message "Component compliance passed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
 }
 function Get-LastExecution {
+    # Get all data gathered in Last Execution SQL table
     return (Invoke-SQLquery -FileQuery "$SQL_QUERIES_DIRECTORY/LastExecution.sql")
 }
 function Remove-OldJobs {
+    # To avoid errors remove remaining jobs
     Get-Job | Remove-Job -Force
     Write-Log -Message "Old jobs removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
 }
