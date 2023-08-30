@@ -34,6 +34,8 @@ New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 
 
 New-Variable -Name "MAX_SLEEP_INTERVAL" -Value 3600000 -Force -Scope Script
+New-Variable -Name "SHIFT_SCRIPT_RUN" -Value 0 -Force -Scope Script
+New-Variable -Name "NUMBER_OF_TIMES_SHIFT_SCRIPT_RUN_CAN_BE_USED" -Value 0 -Force -Scope Script
 New-Variable -Name "BYPASS_EMPTY_INVENTORY" -Value $false -Force -Scope Script -Option ReadOnly
 New-Variable -Name "CONFIG_FILEPATH" -Value "./Config.json" -Force -Scope Script -Option ReadOnly
 New-Variable -Name "TEST_SQL_SLEEP_TIME_SECONDS" -Value 60 -Force -Scope Script -Option ReadOnly
@@ -70,20 +72,26 @@ function Invoke-MainLoop {
             -Force -Scope Global -Option ReadOnly
         # Get jobs to run and time thresholds
         $Config = Get-ConfigurationDetails
-        $SleepTime = ($Script:MAX_SLEEP_INTERVAL * 1000) 
-        # SyncData Section
-        foreach ($S in $Config.SyncData.Keys) {
+        $SleepTime = ($Script:MAX_SLEEP_INTERVAL * 1000)
+        $numTriggerShiftUsed = 0
+        $scriptInvokedInCurrentIteration = $false
+        # Events Section
+        foreach ($E in $Config.Events.Keys) {
             $currentTime = Get-Date
-            $refreshInterval = $Config.SyncData.$S.'Refresh_Interval_in_seconds'
+            $refreshInterval = $Config.Events.$E.'Refresh_Interval_in_seconds'
             # Get time when job should be invoked
-            $runTime = $Config.SyncData.$S.'Last_Refresh_time'.AddSeconds($refreshInterval)
+            $runTime = $Config.Events.$E.'Last_Refresh_time'.AddSeconds($refreshInterval)
             # Calculate time difference between current time and desired run time
             $jobSleeptimeMiliseconds = ($currentTime - $runTime).TotalMilliseconds
             # If current time is -gt than runtime than it should be run now
             if ($jobSleeptimeMiliseconds -ge 0) {
-                Write-Host "Start job $S" -ForegroundColor Green
+                Write-Host "Start job $E" -ForegroundColor Green
                 ### Start Appropriate job ###
-                Start-DataRetrievingJob -Name $S -Type "SyncData"
+                $numTriggerShiftUsed = Invoke-ScriptTriggerShift `
+                    -scriptInvokedInCurrentIteration $scriptInvokedInCurrentIteration `
+                    -triggerShiftUsed $numTriggerShiftUsed
+        
+                $scriptInvokedInCurrentIteration = Start-DataRetrievingJob -Name $E -Type "Events"
             }
             else {
                 # If time difference was -lt 0 than we have the sleep time for this job
@@ -105,7 +113,11 @@ function Invoke-MainLoop {
             if ($jobSleeptimeMiliseconds -ge 0) {
                 Write-Host "Start job $O" -ForegroundColor Green
                 ### Start Appropriate job ###
-                Start-DataRetrievingJob -Name $O -Type "Objects"
+                $numTriggerShiftUsed = Invoke-ScriptTriggerShift `
+                    -scriptInvokedInCurrentIteration $scriptInvokedInCurrentIteration `
+                    -triggerShiftUsed $numTriggerShiftUsed
+        
+                $scriptInvokedInCurrentIteration = Start-DataRetrievingJob -Name $O -Type "Objects"
             }
             else {
                 # If time difference was -lt 0 than we have the sleep time for this job
@@ -115,19 +127,23 @@ function Invoke-MainLoop {
                 }
             }
         }
-        # Events Section
-        foreach ($E in $Config.Events.Keys) {
+        # SyncData Section
+        foreach ($S in $Config.SyncData.Keys) {
             $currentTime = Get-Date
-            $refreshInterval = $Config.Events.$E.'Refresh_Interval_in_seconds'
+            $refreshInterval = $Config.SyncData.$S.'Refresh_Interval_in_seconds'
             # Get time when job should be invoked
-            $runTime = $Config.Events.$E.'Last_Refresh_time'.AddSeconds($refreshInterval)
+            $runTime = $Config.SyncData.$S.'Last_Refresh_time'.AddSeconds($refreshInterval)
             # Calculate time difference between current time and desired run time
             $jobSleeptimeMiliseconds = ($currentTime - $runTime).TotalMilliseconds
             # If current time is -gt than runtime than it should be run now
             if ($jobSleeptimeMiliseconds -ge 0) {
-                Write-Host "Start job $E" -ForegroundColor Green
+                Write-Host "Start job $S" -ForegroundColor Green
                 ### Start Appropriate job ###
-                Start-DataRetrievingJob -Name $E -Type "Events"
+                $numTriggerShiftUsed = Invoke-ScriptTriggerShift `
+                    -scriptInvokedInCurrentIteration $scriptInvokedInCurrentIteration `
+                    -triggerShiftUsed $numTriggerShiftUsed
+
+                $scriptInvokedInCurrentIteration = Start-DataRetrievingJob -Name $S -Type "SyncData"
             }
             else {
                 # If time difference was -lt 0 than we have the sleep time for this job
@@ -137,12 +153,40 @@ function Invoke-MainLoop {
                 }
             }
         }
+        
+        $SleepTime = Get-MainLoopSleepTime -SleepTime $SleepTime -triggerShiftUsed $numTriggerShiftUsed
         Write-Log -Message "Start Sleep $([int]$SleepTime) miliseconds" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
         Start-Sleep -Milliseconds $SleepTime
         
         $whileCondition = Stop-ProcessCoordinator
     }
     Write-Log -Message "Exiting main loop" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+}
+function Invoke-ScriptTriggerShift {
+    param (
+        $scriptInvokedInCurrentIteration,
+        $triggerShiftUsed
+    )
+    if (($scriptInvokedInCurrentIteration -eq $true) -and 
+        ($triggerShiftUsed -lt $Script:NUMBER_OF_TIMES_SHIFT_SCRIPT_RUN_CAN_BE_USED)) {
+        
+        $timeToShift = $($Script:SHIFT_SCRIPT_RUN * 1000)
+        Write-Log -Message "Script trigger Shift invoked for $timeToShift miliseconds" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+        Start-Sleep -Milliseconds $timeToShift
+        return $($triggerShiftUsed + 1)
+    }
+    return $triggerShiftUsed
+}
+function Get-MainLoopSleepTime {
+    param (
+        $SleepTime,
+        $triggerShiftUsed
+    )
+    $SleepTime = $($SleepTime - $($Script:SHIFT_SCRIPT_RUN * $triggerShiftUsed * 1000))
+    if ($SleepTime -ge 0) {
+        return $SleepTime
+    }
+    return 0
 }
 function Start-DataRetrievingJob {
     param(
@@ -182,13 +226,17 @@ function Start-DataRetrievingJob {
         $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
         Invoke-SQLquery -Query $Query
     }
+    # Check if devices are replying to ICMP
+    & "./Core/SyncData/Test-ActiveDevices.ps1"
+    Write-Log -Message "Test Active devices invoked" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
     # Start new job
     Start-Job -Name $Name `
         -InitializationScript { Set-Location $env:DEVICE_MONITORING_ROOT_DIRECTORY } `
-        -FilePath $("./Core/$Type/$Name")
+        -FilePath $("./Core/$Type/$Name") | Out-Null
     # Write Log and update Last execution date in SQL
     Write-Log -Message "Job $Name started" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
     Invoke-UpdateStartLastExecution -Name $Name -Type $Type
+    return $true
 }
 function Invoke-UpdateStartLastExecution {
     param(
@@ -213,6 +261,8 @@ function Get-ConfigurationDetails {
         -Value $($Config.Commands.Stop_Process_Coordinator) -Force -Scope Global
     New-Variable -Name "STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER" `
         -Value $($Config.Commands.Stop_Process_and_Disable_Task_Scheduler) -Force -Scope Global
+
+    $refreshIntervalsArray = New-Object System.Collections.ArrayList
     # Go through imported Config.json and create a Hashtable to work in main loop
     $hash = @{}
     $skippedScripts = @()
@@ -239,6 +289,7 @@ function Get-ConfigurationDetails {
             # Find the lowest refresh interval in seconds
             if ($property.Value.Refresh_Interval_in_seconds -le $MAX_SLEEP_INTERVAL) {
                 $Script:MAX_SLEEP_INTERVAL = $property.Value.Refresh_Interval_in_seconds
+                $refreshIntervalsArray.Add($($property.Value.Refresh_Interval_in_seconds)) | Out-Null
             }
             # Add the script entry to the result hash with default last refresh date
             $hash.($Type.Name)[$property.Name] = $property.Value
@@ -257,15 +308,19 @@ function Get-ConfigurationDetails {
             $hash.$Type.$Name.Last_Refresh_time = $LastRefresh
         }
         catch {
-            if($Name -in $skippedScripts){
+            if ($Name -in $skippedScripts) {
                 Write-Log -Message "$Type script $Name has refresh interval set to 0, but it was running in the past" -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH
-            }else{
-                Write-Log -Message "$Type script $Name does not exist in config file" -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH
             }
-            
+            else {
+                Write-Log -Message "$Type script $Name does not exist in config file" -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH
+            }   
         }
-        
     }
+    # Calculate Shift time required to optimize the timing when scripts are triggered
+    $Count = ($refreshIntervalsArray | Where-Object { $_ -eq $Script:MAX_SLEEP_INTERVAL }).count
+    New-Variable -Name "SHIFT_SCRIPT_RUN" -Value $($Script:MAX_SLEEP_INTERVAL / ($Count + 1)) `
+        -Force -Scope Script
+    New-Variable -Name "NUMBER_OF_TIMES_SHIFT_SCRIPT_RUN_CAN_BE_USED" -Value $($Count) -Force -Scope Script
     # Return built hash
     return $hash
 }
