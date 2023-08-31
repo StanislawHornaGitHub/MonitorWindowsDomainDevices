@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-    Script to get Device specification, CPU model, amount of RAM memory etc/
+    Script to get Device specification, CPU model, amount of RAM memory etc
 
 .DESCRIPTION
     Script is connecting to each device marked as active in SQL Inventory Table and retrieving information.
