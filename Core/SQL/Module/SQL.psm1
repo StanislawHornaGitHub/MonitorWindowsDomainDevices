@@ -29,17 +29,44 @@ function Get-SQLdataUpdateQuery {
         $TableName,
         $sqlPrimaryKey = $SQL_PRIMARY_KEY
     )
+
+    # Create UPDATE row SQL Query
     $SQL_Update_Query = Get-SQLupdateSection -Entry $Entry `
         -TableName $TableName `
         -sqlPrimaryKey $sqlPrimaryKey
+    # Create INSERT row SQL Query
     $SQL_Insert_Query = Get-SQLinsertSection -Entry $Entry `
         -TableName $TableName `
         -sqlPrimaryKey $sqlPrimaryKey
-    $SQL_Query_Template = Get-Content -Path $SQL_WRITE_TABLE_DATA_TEMPLATE -Raw
+    # Different approach depending on whether the Object table has corresponding Change Log table or not 
+    if ($TableName -notin $SQL_OBJECT_TABLES_WITHOUT_CHANGE_LOG) {
+        # Create INSERT CHANGE LOG SQL Query
+        $SQL_Insert_Log_Query = Get-SQLinsertSection -Entry $Entry `
+            -TableName "$($SQL_LOG_TABLE_PREFIX)$TableName" `
+            -sqlPrimaryKey $sqlPrimaryKey
+        # Exclude defined columns from comparison
+        $ColumnsToCompare = $Entry.PSObject.Properties.Name | Where-Object { $_ -notin $COLUMNS_EXCLUDED_FROM_COMPARISON }
+        $ColumnsToCompare = $ColumnsToCompare -join ", "
+        # Load Object Data SQL Query template
+        $SQL_Query_Template = Get-Content -Path $SQL_WRITE_TABLE_DATA_WITH_CHANGE_LOG_TEMPLATE -Raw
+        # Put columns to compare to the template
+        $SQL_Query_Template = $SQL_Query_Template.Replace("COLUMNS_TO_COMPARE_DURING_UPDATE_VARIABLE", $ColumnsToCompare)
+        # Put INSERT CHANGE LOG sub query to the template
+        $SQL_Query_Template = $SQL_Query_Template.Replace("INSERT_LOG_QUERY_BLOCK_VARIABLE", $SQL_Insert_Log_Query)
+    }
+    else {
+        # Load Object Data SQL Query template
+        $SQL_Query_Template = Get-Content -Path $SQL_WRITE_TABLE_DATA_TEMPLATE -Raw
+    }
+    # Put entry identity column name to the template
     $SQL_Query_Template = $SQL_Query_Template.Replace("PRIMARY_KEY_VARIABLE", $sqlPrimaryKey)
+    # Put table name to the template
     $SQL_Query_Template = $SQL_Query_Template.Replace("TABLE_NAME_VARIABLE", $TableName)
+    # Put entry identity value to the template
     $SQL_Query_Template = $SQL_Query_Template.Replace("COMPUTER_DNS_HOSTNAME_VARIABLE", $($Entry.$sqlPrimaryKey))
+    # Put UPDATE sub query to the template
     $SQL_Query_Template = $SQL_Query_Template.Replace("UPDATE_QUERY_BLOCK_VARIABLE", $SQL_Update_Query)
+    # Put INSERT sub query to the template
     $SQL_Query_Template = $SQL_Query_Template.Replace("INSERT_QUERY_BLOCK_VARIABLE", $SQL_Insert_Query)
 
     return $SQL_Query_Template
