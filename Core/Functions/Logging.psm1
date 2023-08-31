@@ -1,7 +1,37 @@
-function Get-PipeLogName {
-    return $("$PIPELINE_LOGS_DIRECTORY\$((Get-Date).ToString("yyyy-MM-dd"))_$($SCRIPT_NAME.split(".")[0]).txt")
-}
+<#
+.SYNOPSIS
+    Module with functions to create consistant logs
 
+.DESCRIPTION
+    Module consists of functions used to log what is happening in the scripts and Proces Coordinator.
+    It contain following functions:
+        
+        Write-Joblog - Used to write the execution of both objects and events scripts to the file in csv format.
+                       For each script following information is covered:
+                            - Script name
+                            - Start time
+                            - End time
+                            - Execution duration
+                            - Exit Code
+                            - Number of processed devices
+                            - Message - anything else that should be saved such like warnings errors etc.
+        Write-Log - Used to write information from Process Coordinator about current status in text format.
+                    Following data are saved:
+                            - Timestamp of the message in seconds
+                            - Message type (INFO / WARNING / ERROR)
+
+.NOTES
+
+    Version:            1.0
+    Author:             Stanisław Horna
+    Mail:               stanislawhorna@outlook.com
+    GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
+    Creation Date:      19-Aug-2023
+    ChangeLog:
+
+    Date            Who                     What
+
+#>
 function Write-Joblog {
     param(
         $Message,

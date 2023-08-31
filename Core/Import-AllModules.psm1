@@ -1,3 +1,30 @@
+<#
+.SYNOPSIS
+    Main module used required for every script
+
+.DESCRIPTION
+    Main module imported in every script to import other modules from the project.
+    It is also responsible for creating variables common for every script.
+
+    It contains following sections:
+        Import Modules
+        SQL Database
+        Deployment
+        Environmental variables
+        Log paths
+
+.NOTES
+
+    Version:            1.0
+    Author:             Stanisław Horna
+    Mail:               stanislawhorna@outlook.com
+    GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
+    Creation Date:      9-Aug-2023
+    ChangeLog:
+
+    Date            Who                     What
+
+#>
 ############################
 ## Import Modules SECTION ##
 ############################
@@ -42,7 +69,7 @@ New-Variable -Name "OPEN_HARDWARE_MONITOR_EXE" -Value "$LOCAL_MONITORING_COMPONE
 $env:DEVICE_MONITORING_ROOT_DIRECTORY = $((Get-Location).Path)
 
 ########################
-## Logs Paths SECTION ##
+## Log Paths SECTION ##
 ########################
 New-Variable -Name "LOGS_ROOT_DIRECTORY" -Value ".\Log" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "JOB_LOG_PATH" -Value "$LOGS_ROOT_DIRECTORY\Job\$((Get-Date).ToString("yyyy-MM-dd"))_Log.txt" -Force -Scope Global -Option ReadOnly

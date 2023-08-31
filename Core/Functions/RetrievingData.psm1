@@ -1,3 +1,28 @@
+<#
+.SYNOPSIS
+    Module with functions to retrieve information from monitored devices.
+
+.DESCRIPTION
+    Module consists of functions used get necessary data required to start collecting info from devices
+    and those which are starting separate background job for each device to collect data.
+
+    It contain following functions:
+        Get-ComputerListToProcess - used to get the list of devices for further processing
+        Get-WMIDataAsJob - used to create bacground jobs to collect WMI data from devices.
+        Get-RegistryDataAsJob - used to create bacground jobs to collect Registry data from devices.
+
+.NOTES
+
+    Version:            1.0
+    Author:             Stanisław Horna
+    Mail:               stanislawhorna@outlook.com
+    GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
+    Creation Date:      26-Aug-2023
+    ChangeLog:
+
+    Date            Who                     What
+
+#>
 function Get-ComputerListToProcess {
     <#
     .DESCRIPTION

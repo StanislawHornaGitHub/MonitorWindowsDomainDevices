@@ -1,3 +1,35 @@
+<#
+.SYNOPSIS
+    Module with functions related to the communication with SQL Server
+
+.DESCRIPTION
+    Module consists of functions to check the availability of Server,
+    invoke SQL queries and build them in adequate manner.
+    Some of them are created only to simplify the code inside of this module and they are not used anywhere else.
+
+    It contain following functions:
+        - Invoke-SQLquery - Basic function to invoke query passed as a string or read out from file
+        - Get-SQLdataUpdateQuery - Complex function responsible for creating SQL queries,
+                                   mostly related to the object tables in the Database.
+        - Get-SQLupdateSection - used to create simple UPDATE query to specified table and entry,
+                                 which is passed as PSCustomObject
+        - Get-SQLinsertSection - used to create simple INSERT query to specified table and entry,
+                                 whcih is passed as PSCustomObject, mostly used for Event tables.
+        - Test-SQLserverAvailability - function dedicated for Process Coordinator to check if the SQL Server is running
+                                       and ready to execute queries.
+
+.NOTES
+
+    Version:            1.0
+    Author:             Stanisław Horna
+    Mail:               stanislawhorna@outlook.com
+    GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
+    Creation Date:      16-Aug-2023
+    ChangeLog:
+
+    Date            Who                     What
+
+#>
 function Invoke-SQLquery {
     param (
         $Query,
