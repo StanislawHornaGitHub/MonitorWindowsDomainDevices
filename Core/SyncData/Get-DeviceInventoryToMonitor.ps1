@@ -1,6 +1,44 @@
 <#
-    .DESCRIPTION
-    Script to get list of devices joined to AD with DNS names and IPs
+.SYNOPSIS
+    Script to get list of devices
+
+.DESCRIPTION
+    Script to get list of devices joined to AD and their PS Remoting status,
+    if they are ready to work with Monitor Windows Domain devices or not.
+    Script is performing following steps for each device:
+        1. Get IPv4 address from defined DNS Server
+        2. Try to Ping it
+        3. Test PS Remoting:
+            - Test-WSMan
+            - Get Service status of WinRM and RpcSs
+        4. Push the result for Inventory table
+
+.INPUTS
+    DEBUG - switch - If it is set than no data will be pushed to the SQL server,
+                    everything will be displayed in the console.
+
+.OUTPUTS
+    Based on input DEBUG setting data is displayed in the console or pushed to the SQL Server
+            DNSHostName - DNSHostName stored in AD
+            IPaddress - Adress received from DNS Served
+            isActiveWinRM - Status of PS Remoting
+            isActiveTCP - Status of ping
+            isActive - Overall activeness status
+            LastUpdate - Date when the record was updated for the last time
+            LastSeen - Date when device was active for the last time
+            Error - Any errors which were related to the particular device
+        
+
+.NOTES
+
+    Version:            1.0
+    Author:             Stanisław Horna
+    Mail:               stanislawhorna@outlook.com
+    GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
+    Creation Date:      14-Aug-2023
+    ChangeLog:
+
+    Date            Who                     What
 
 #>
 Param(
@@ -46,7 +84,7 @@ function Get-ComputerList {
         $Computer = $Computer | Where-Object { $_.Enabled -eq $true }
     }
     $Script:Computer = $Computer
-    #Write-MainLog -Message "Devices retrieved from ActiveDirectory"
+
 }
 
 function Get-ComputerIsActive {

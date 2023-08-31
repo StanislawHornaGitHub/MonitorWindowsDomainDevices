@@ -1,6 +1,29 @@
 <#
-    .DESCRIPTION
-    Script to check if device is active before retrieving data
+.SYNOPSIS
+    Script to check if device is activ
+
+.DESCRIPTION
+    Script to verify if the device is still active. To reduce the operations time only ICMP reply is tested.
+    Only devices marked in Inventory as fully active are targetted.
+    if the device is not active, than isActive is set to false in inventory.
+
+.INPUTS
+    DEBUG - switch - If it is set than no data will be pushed to the SQL server,
+                    everything will be displayed in the console.
+
+.OUTPUTS
+    None
+
+.NOTES
+
+    Version:            1.0
+    Author:             Stanisław Horna
+    Mail:               stanislawhorna@outlook.com
+    GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
+    Creation Date:      14-Aug-2023
+    ChangeLog:
+
+    Date            Who                     What
 
 #>
 Param(
