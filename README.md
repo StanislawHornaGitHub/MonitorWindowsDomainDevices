@@ -73,5 +73,5 @@ displayMode: compact
 
 There are 2 main categories of collected data:
 
-- **Objects** - for example list of devices, where each device has own properties such like Device model, CPU model, amount of RAM memory. Information is updated in these tables, so if you extend the the RAM memory you will be able to see only current value without the historical data.
+- **Objects** - for example list of devices, where each device has own properties such like Device model, CPU model, amount of RAM memory. When the information is updated in these tables, it is also verified if anything changed comparing to previous update. If there are some differences, old set of values is inserted to the corresponding table with prefix "ChangeLog_". 
 - **Events** - for example CPU Temperature measurement. Each execution will produce new entries to the database which will tell us about the value recorded at a given time.
