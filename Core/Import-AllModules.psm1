@@ -53,7 +53,8 @@ New-Variable -Name "SQL_OBJECT_TABLES_WITHOUT_CHANGE_LOG" -Value @(
 New-Variable -Name "COLUMNS_EXCLUDED_FROM_COMPARISON" -Value @(
     "LastUpdate",
     "Error",
-    "LastBootTime"
+    "LastBootTime",
+    "EstimatedSize_GB"
 ) -Force -Scope Global -Option ReadOnly
 
 ########################
