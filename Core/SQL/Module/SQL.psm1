@@ -85,6 +85,14 @@ function Get-SQLdataUpdateQuery {
         $SQL_Query_Template = $SQL_Query_Template.Replace("COLUMNS_TO_COMPARE_DURING_UPDATE_VARIABLE", $ColumnsToCompare)
         # Put INSERT CHANGE LOG sub query to the template
         $SQL_Query_Template = $SQL_Query_Template.Replace("INSERT_LOG_QUERY_BLOCK_VARIABLE", $SQL_Insert_Log_Query)
+        if($TableName -in $TABLES_WHERE_TEMP_NAME_USE_DNSHOSTNAME){
+            $tempTableName = "$($TableName)_$($Entry.'DNSHostName')"
+        }else{
+            $tempTableName = "$($TableName)_$($Entry.$sqlPrimaryKey)"
+        }
+        $tempTableName = $tempTableName.Replace("-", "_")
+        $tempTableName = $tempTableName.Replace(".", "_")
+        $SQL_Query_Template = $SQL_Query_Template.Replace("TABLE_TEMPORARY_NAME_VARIABLE", $tempTableName)
     }
     else {
         # Load Object Data SQL Query template

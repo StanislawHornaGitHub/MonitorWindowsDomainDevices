@@ -56,7 +56,9 @@ New-Variable -Name "COLUMNS_EXCLUDED_FROM_COMPARISON" -Value @(
     "LastBootTime",
     "EstimatedSize_GB"
 ) -Force -Scope Global -Option ReadOnly
-
+New-Variable -Name "TABLES_WHERE_TEMP_NAME_USE_DNSHOSTNAME" -Value @(
+    "Packages"
+) -Force -Scope Global -Option ReadOnly
 ########################
 ## DEPLOYMENT SECTION ##
 ########################
