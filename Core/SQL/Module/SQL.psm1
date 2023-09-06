@@ -117,17 +117,24 @@ function Get-SQLupdateSection {
         $TableName,
         $sqlPrimaryKey = $SQL_PRIMARY_KEY
     )
+    # Provide UPDATE statement
     $SQL_Update_Query = "UPDATE $TableName"
+    # Get Column names to update
     $columnsToUpdate = ($Entry | Get-Member -Type NoteProperty).Name
+    # Exclude Primary Key from coulms to update set
     $columnsToUpdate = @($columnsToUpdate | Where-Object { $_ -ne $sqlPrimaryKey })
+    # Exclude columns which are nulls from update
     $columnsToUpdate = @($columnsToUpdate | Where-Object { $null -ne $Entry.$_ })
-    
+    # Provide SET statement
     $setSection = "SET "
+    # Write each column name with value to push
     $setSection += "$($columnsToUpdate[0]) = '$($Entry.$($columnsToUpdate[0]))'"
     for ($i = 1; $i -lt $columnsToUpdate.Count; $i++) {
         $setSection += ", $($columnsToUpdate[$i]) = '$($Entry.$($columnsToUpdate[$i]))'"
     }
+    # Provide condition which row will be updated
     $whereSection = "WHERE $sqlPrimaryKey = '$($Entry.$sqlPrimaryKey)'"
+    # Merge all sections into one query
     $SQL_Update_Query = "$SQL_Update_Query`n$setSection`n$whereSection"
     return $SQL_Update_Query
 }
@@ -137,20 +144,24 @@ function Get-SQLinsertSection {
         $TableName,
         $sqlPrimaryKey = $SQL_PRIMARY_KEY
     )
+    # Get columns to insert
     $columnsToInsert = ($Entry | Get-Member -Type NoteProperty).Name
-
+    # Exclude Primary Key from coulms to insert set
     $columnsToInsert = @($columnsToInsert | Where-Object { $_ -ne $sqlPrimaryKey })
+    # Exclude columns which are nulls from insert
     $columnsToInsert = @($columnsToInsert | Where-Object { $null -ne $Entry.$_ })
-
+    # Provide INSERT INTO statement
     $SQL_Insert_Query = "INSERT INTO $TableName ($sqlPrimaryKey"
+    # Write each column name and value to insert in a correct order
     $valuesSection = "VALUES ('$($Entry.$sqlPrimaryKey)'"
-
     for ($i = 0; $i -lt $columnsToInsert.Count; $i++) {
         $SQL_Insert_Query += ", $($columnsToInsert[$i])"
         $valuesSection += ", '$($Entry.$($columnsToInsert[$i]))'"
     }
+    # Close statement brackets
     $SQL_Insert_Query += ")"
     $valuesSection += ")"
+    # Merge all sections into one query
     $SQL_Insert_Query = "$SQL_Insert_Query`n$valuesSection"
     return $SQL_Insert_Query
 }
