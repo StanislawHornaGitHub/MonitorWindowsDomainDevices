@@ -1,9 +1,11 @@
 <#
 .SYNOPSIS
-    
+    Script to get list of packages on each device.
 
 .DESCRIPTION
-
+    Script is connecting to each device marked as active in SQL Inventory Table and retrieving information.
+    For each device script is creating separate Powershell Background job responsible for collecting data.
+    Results are captured and pushed to SQL OperatingSystem Table
 
 .INPUTS
     DEBUG - switch - If it is set than no data will be pushed to the SQL server,
@@ -12,8 +14,16 @@
                     to get the list of currently active devices
 
 .OUTPUTS
+    Based on input DEBUG setting data is displayed in the console or pushed to the SQL Server
 
-
+        DisplayName - Package Name
+        Publisher - Package vendor
+        DisplayVersion - package version
+        InstallDate - date when it was installed
+        InstallLocation - instalation directory
+        QuietUninstallString - quiet uninstaller
+        DNSHostName - Device DNSHostName 
+        EstimatedSize_GB - Estimated Package size
 
 .NOTES
 
@@ -54,22 +64,27 @@ New-Variable -Name 'INPUT_HASH' -Value @{
 } -Force -Scope Script -Option ReadOnly
 
 function Invoke-Main {
+    Write-Joblog
     try {
         Get-DevicePackagesAsJob
         Get-DevicePackagesFromJob
-        $TIMER
     }
     catch {
-        <#Do this if a terminating exception happens#>
+        Write-Joblog -Message $_.Exception.Message
+        $EXIT_CODE = 1
     }
     finally {
-        <#Do this after the try block regardless of whether an exception occurred or not#>
+        Write-Joblog -Completed
+        exit $EXIT_CODE
     }
 }
 function Get-DevicePackagesAsJob {
     $Computer = Get-ComputerListToProcess
     foreach ($C in $Computer) {
-        Start-Job -Name "$($C.DNSHostName)" -ScriptBlock {
+        Start-Job -Name "$($C.DNSHostName)" `
+            -InitializationScript {
+                Import-Module "./Core/Import-AllModules.psm1"
+        } -ScriptBlock {
             param(
                 $ComputerName,
                 $INPUT_HASH 
@@ -89,10 +104,11 @@ function Get-DevicePackagesAsJob {
                     }
                     catch {
                         foreach ($property in $thisLine.PSObject.Properties.Name) {
-                            if ($null -eq $($temphash.$key.$property)){
+                            if ($null -eq $($temphash.$key.$property)) {
                                 $temphash.$key.$property = $thisLine.$property
                             }
                         }
+                        $temphash.$key.EstimatedSize += [int]$thisLine.EstimatedSize
                     }
                 }
                 return $($temphash.Values)
@@ -147,7 +163,6 @@ function Get-DevicePackagesFromJob {
                         Write-Error $_
                         $updateQuery
                     }
-                    
                 }
             }
 
@@ -161,4 +176,5 @@ function Get-DevicePackagesFromJob {
     }
     
 }
+
 Invoke-Main

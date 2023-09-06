@@ -64,3 +64,18 @@ CREATE TABLE [dbo].[Storage] (
     CONSTRAINT [PK_VolumeSpace] PRIMARY KEY CLUSTERED ([DNSHostName] ASC)
 );
 PRINT CONCAT('Storage', @Message)
+
+CREATE TABLE [dbo].[Packages] (
+    [DisplayName]          NVARCHAR (100) NULL,
+    [Publisher]            NVARCHAR (100) NULL,
+    [DisplayVersion]       NVARCHAR (100) NULL,
+    [InstallDate]          DATETIME2 (7)  NULL,
+    [InstallLocation]      NVARCHAR (250) NULL,
+    [QuietUninstallString] NVARCHAR (250) NULL,
+    [DNSHostName]          NVARCHAR (50)  NULL,
+    [EstimatedSize_GB]     FLOAT (53)     NULL,
+    [LastUpdate]           DATETIME       NULL,
+    [Row_ID]               NVARCHAR (500) NOT NULL,
+    CONSTRAINT [PK_Packages] PRIMARY KEY CLUSTERED ([Row_ID] ASC)
+);
+PRINT CONCAT('Packages', @Message)
