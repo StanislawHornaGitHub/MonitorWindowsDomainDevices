@@ -56,6 +56,14 @@ function Write-Joblog {
                     continue
                 }
             }
+            $LOG_OBJECT.Message = $LOG_OBJECT.Message.Replace("'","`"")
+            $insertQuery = Get-SQLinsertSection -Entry $LOG_OBJECT -TableName "Job_Log" -sqlPrimaryKey 'Script_name'
+            try {
+                Invoke-SQLquery -Query $insertQuery -SQLDBName $SQL_LOG_DATABASE
+            }
+            catch {
+                Write-Log -Message "$SCRIPT_NAME - Cannot update Job_Log Table$($_)" -Type 'error' -Path $PROCESS_COORDINATOR_LOG_PATH
+            }
         }
         else {
             New-Variable -Name "LOG_OBJECT" -Value $([PSCustomObject]@{

@@ -33,19 +33,20 @@
 function Invoke-SQLquery {
     param (
         $Query,
-        $FileQuery
+        $FileQuery,
+        $SQLDBName = $SQL_DATABASE
     )
     if ($FileQuery) {
         $Output = Invoke-Sqlcmd `
             -ServerInstance $SQL_SERVER `
-            -Database $SQL_DATABASE `
+            -Database $SQLDBName `
             -InputFile $FileQuery `
             -ErrorAction Stop
     }
     elseif ($Query) {
         $Output = Invoke-Sqlcmd `
             -ServerInstance $SQL_SERVER `
-            -Database $SQL_DATABASE `
+            -Database $SQLDBName `
             -Query $Query `
             -ErrorAction Stop
     }

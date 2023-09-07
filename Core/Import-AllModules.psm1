@@ -39,6 +39,7 @@ New-Variable -Name "BYPASS_EMPTY_INVENTORY_TABLE" -Value $false -Force -Scope Gl
 New-Variable -Name "SQL_QUERIES_DIRECTORY" -Value "./Core/SQL/Query" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "SQL_SERVER" -Value "Server-Automation" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "SQL_DATABASE" -Value "Device_Monitoring" -Force -Scope Global -Option ReadOnly
+New-Variable -Name "SQL_LOG_DATABASE" -Value "Device_Monitoring_Maintenance" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "SQL_PRIMARY_KEY" -Value "DNSHostName" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "SQL_LOG_TABLE_PREFIX" -Value "ChangeLog_" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "SQL_INVENTORY_TABLE_NAME" -Value "Inventory" -Force -Scope Global -Option ReadOnly
