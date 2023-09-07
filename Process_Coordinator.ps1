@@ -45,7 +45,7 @@ New-Variable -Name "STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER" -Value 0 -Force -Sc
 New-Variable -Name "TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS" -Value 60 -Force -Scope Script -Option ReadOnly
 
 function Invoke-Main {
-    Write-Log -Message "Process started PID: $($PID)" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+    Write-Log -Message "Process started PID: $($PID)" -Type "start" -Path $PROCESS_COORDINATOR_LOG_PATH
     try {
         Test-RootContents
         Invoke-LogFolderStructure
@@ -58,7 +58,7 @@ function Invoke-Main {
         $EXIT_CODE = 1
     }
     finally {
-        Write-Log -Message "Process exited with code $EXIT_CODE" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+        Write-Log -Message "Process exited with code $EXIT_CODE" -Type "stop" -Path $PROCESS_COORDINATOR_LOG_PATH
         exit $EXIT_CODE
     }
 }
@@ -155,7 +155,7 @@ function Invoke-MainLoop {
         }
         
         $SleepTime = Get-MainLoopSleepTime -SleepTime $SleepTime -triggerShiftUsed $numTriggerShiftUsed
-        Write-Log -Message "Start Sleep $([int]$SleepTime) miliseconds" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+        Write-Log -Message "Start Sleep $([int]$SleepTime) miliseconds" -Type "sleep" -Path $PROCESS_COORDINATOR_LOG_PATH
         Start-Sleep -Milliseconds $SleepTime
         
         $whileCondition = Stop-ProcessCoordinator
@@ -171,7 +171,7 @@ function Invoke-ScriptTriggerShift {
         ($triggerShiftUsed -lt $Script:NUMBER_OF_TIMES_SHIFT_SCRIPT_RUN_CAN_BE_USED)) {
         
         $timeToShift = $($Script:SHIFT_SCRIPT_RUN * 1000)
-        Write-Log -Message "Script trigger Shift invoked for $timeToShift miliseconds" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+        Write-Log -Message "Script trigger Shift invoked for $timeToShift miliseconds" -Type "sleep" -Path $PROCESS_COORDINATOR_LOG_PATH
         Start-Sleep -Milliseconds $timeToShift
         return $($triggerShiftUsed + 1)
     }
@@ -224,7 +224,7 @@ function Start-DataRetrievingJob {
         Remove-Job -Name $Name -Force
         Write-Log -Message "Job $Name removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
         $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
-        Invoke-SQLquery -Query $Query
+        Invoke-SQLquery -Query $Query -SQLDBName $SQL_LOG_DATABASE
     }
     # Check if devices are replying to ICMP
     & "./Core/SyncData/Test-ActiveDevices.ps1"
@@ -251,7 +251,7 @@ function Invoke-UpdateStartLastExecution {
     # Create appropriate Query 
     $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
     # Execute Query on the Server
-    Invoke-SQLquery -Query $Query
+    Invoke-SQLquery -Query $Query -SQLDBName $SQL_LOG_DATABASE
 }
 function Get-ConfigurationDetails {
     # Read Config.json file
@@ -372,7 +372,7 @@ function Stop-AllJobs {
             # Write Log and update information in SQL
             Write-Log -Message "Job $Name removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
             $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
-            Invoke-SQLquery -Query $Query
+            Invoke-SQLquery -Query $Query -SQLDBName $SQL_LOG_DATABASE
         }
     }
     Write-Log -Message "Exiting waiting loop" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
@@ -450,7 +450,7 @@ function Test-RootContents {
 }
 function Get-LastExecution {
     # Get all data gathered in Last Execution SQL table
-    return (Invoke-SQLquery -FileQuery "$SQL_QUERIES_DIRECTORY/LastExecution.sql")
+    return (Invoke-SQLquery -FileQuery "$SQL_QUERIES_DIRECTORY/LastExecution.sql"  -SQLDBName $SQL_LOG_DATABASE)
 }
 function Remove-OldJobs {
     # To avoid errors remove remaining jobs

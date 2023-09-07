@@ -37,9 +37,10 @@ function Write-Joblog {
         $Message,
         [switch]$Completed
     )
-    if($Message){
+    if ($Message) {
         $LOG_OBJECT.Message += "$($TIMER.Elapsed.ToString("hh\:mm\:ss\.fff")) - $Message`n"
-    }else{
+    }
+    else {
         if ($Completed) {
             $LOG_OBJECT.End_time = $((Get-Date).ToString("yyyy-MM-dd HH:mm:ss"))
             $LOG_OBJECT.Duration = $($TIMER.Elapsed.ToString("hh\:mm\:ss\.fff"))
@@ -56,25 +57,25 @@ function Write-Joblog {
                     continue
                 }
             }
-            $LOG_OBJECT.Message = $LOG_OBJECT.Message.Replace("'","`"")
-            $insertQuery = Get-SQLinsertSection -Entry $LOG_OBJECT -TableName "Job_Log" -sqlPrimaryKey 'Script_name'
+            $LOG_OBJECT.Message = $LOG_OBJECT.Message.Replace("'", "`"")
+            $insertQuery = Get-SQLinsertSection -Entry $LOG_OBJECT -TableName "Log_Job" -sqlPrimaryKey 'Script_name'
             try {
                 Invoke-SQLquery -Query $insertQuery -SQLDBName $SQL_LOG_DATABASE
             }
             catch {
-                Write-Log -Message "$SCRIPT_NAME - Cannot update Job_Log Table$($_)" -Type 'error' -Path $PROCESS_COORDINATOR_LOG_PATH
+                Write-Log -Message "$SCRIPT_NAME - Cannot update Job_Log Table - $($_)" -Type 'error' -Path $PROCESS_COORDINATOR_LOG_PATH
             }
         }
         else {
             New-Variable -Name "LOG_OBJECT" -Value $([PSCustomObject]@{
-                'Script_name' = $SCRIPT_NAME
-                'Start_time' = $((Get-Date).ToString("yyyy-MM-dd HH:mm:ss"))
-                'End_time' = $null
-                'Duration' = $null
-                'Exit_code' = $null
-                'Processed_devices' = $null
-                'Message' = ""
-            }) -Force -Scope Global
+                    'Script_name'       = $SCRIPT_NAME
+                    'Start_time'        = $((Get-Date).ToString("yyyy-MM-dd HH:mm:ss"))
+                    'End_time'          = $null
+                    'Duration'          = $null
+                    'Exit_code'         = $null
+                    'Processed_devices' = $null
+                    'Message'           = ""
+                }) -Force -Scope Global
         }   
     }
 }
@@ -82,8 +83,28 @@ function Write-Log {
     param (
         $Message,
         $Type,
-        $Path
+        $Path,
+        [bool]$UpdateFileLogOnly = $false
     )
     $Type = $Type.ToUpper()
-    "$((Get-Date).ToString("yyyy.MM.dd HH:mm:ss\.fff")) - $Type : $Message" | Out-File -FilePath $Path -Append
+    $date = $((Get-Date).ToString("yyyy-MM-dd HH:mm:ss\.fff"))
+    "$date - $Type : $Message" | Out-File -FilePath $Path -Append
+    if ($UpdateFileLogOnly -eq $false) {
+        $Message = $Message.Replace("'", "`"")
+        $Entry = [PSCustomObject]@{
+            'Timestamp'    = $date
+            'Message_type' = $Type
+            'Message'      = $Message
+        }
+        $insertQuery = Get-SQLinsertSection -Entry $Entry -TableName "Log_Process_coordinator" -sqlPrimaryKey 'Timestamp'
+        try {
+            Invoke-SQLquery -Query $insertQuery -SQLDBName $SQL_LOG_DATABASE
+        }
+        catch {
+            Write-Log -Type 'error' `
+                -Message "Cannot update Log_Process_coordinator Table - $($_)" `
+                -Path $PROCESS_COORDINATOR_LOG_PATH `
+                -UpdateFileLogOnly $true
+        }
+    }
 }
