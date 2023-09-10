@@ -16,18 +16,16 @@
 .OUTPUTS
     Based on input DEBUG setting data is displayed in the console or pushed to the SQL Server
 
-        SystemDriveCapacity_GB - Capacity of the volume where OS is installed
-        SystemDriveFreeSpace_GB - Free space of the volume where OS is installed
-        SystemDriveUsed - Percentage of used space
-        AllDriveCapacity_GB - Capacity of all volumes on the device
-        AllDriveFreeSpace_GB - Free space of all volumes on the device
-        AllDriveUsed - Percentage of overall usage
-        OtherDrivesDetails - Listed partitions with letter, overall capacity and free space
-                            (e.g D:\ - 1863.01GB - 1231.72GB)
+    PartitionLetter - Letter assigned to the partition
+    Label - name of the partition
+    FileSystem - partition file system
+    DriveCapacity_GB - partition capacity in GBs
+    DriveFreeSpace_GB - partition free space in GBs
+    DriveUsed_Percentage - partition used capacity in percentage
 
 .NOTES
 
-    Version:            1.0
+    Version:            1.1
     Author:             Stanisław Horna
     Mail:               stanislawhorna@outlook.com
     GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
@@ -35,7 +33,8 @@
     ChangeLog:
 
     Date            Who                     What
-
+    10.09.2023      Stanisław Horna         Redesigned format of pushing data to SQL,
+                                            each partition has own row in SQL Table
 #>
 param(
     [switch]$DEBUG
@@ -45,13 +44,18 @@ New-Variable -Name "SCRIPT_NAME" -Value "Get-VolumeSpace" -Force -Scope Global -
 New-Variable -Name "TIMER" -Value $([System.Diagnostics.Stopwatch]::StartNew()) -Force -Scope Global
 
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
-New-Variable -Name "SQL_TABLE_TO_UPDATE" -Value "Storage" -Force -Scope Script -Option ReadOnly
+New-Variable -Name "SQL_TABLE_TO_UPDATE" -Value "Partitions" -Force -Scope Script -Option ReadOnly
 
 New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 60 -Force -Scope Script -Option ReadOnly
 New-Variable -Name 'INPUT_HASH' -Value  @{
     "Volumes" = @{
         "CLASS_Name" = "Win32_Volume"
-        "Property"   = @("Caption", "FileSystem", "Capacity", "FreeSpace")
+        "Property"   = @("Caption", 
+            "DriveLetter",    
+            "FileSystem", 
+            "Capacity", 
+            "FreeSpace", 
+            "Label")
         "Filter"     = "Caption like '%:%' AND (FileSystem like 'NTFS' OR FileSystem like 'REFS')"
     }
 } -Force -Scope Script -Option ReadOnly
@@ -79,17 +83,6 @@ function Get-VolumeDetails {
         $jobName = (Get-Job | Where-Object { $_.State -ne "Running" } | Select-Object -First 1).Name
         if ($null -ne $jobName) {
             Write-Host "Operations during timeout - $jobname"
-            $Entry = [pscustomobject] @{
-                'DNSHostName'             = $($jobName.split(";")[1])
-                'LastUpdate'              = ""
-                'SystemDriveCapacity_GB'  = 0
-                'SystemDriveFreeSpace_GB' = 0
-                'SystemDriveUsed'         = 0
-                'AllDriveCapacity_GB'     = 0
-                'AllDriveFreeSpace_GB'    = 0
-                'AllDriveUsed'            = 0
-                'OtherDrivesDetails'      = ""
-            }
             $success = $false
             try {
                 $Output = Receive-Job -Name $jobName -ErrorAction Stop
@@ -101,21 +94,32 @@ function Get-VolumeDetails {
             }
             finally {
                 If ($success) {
-                    $Entry = Get-SystemDriveDetails -Entry $Entry -Output $Output
-                    $Entry = Get-AllDrivesDetails -Entry $Entry -Output $Output
-                    $Entry.'LastUpdate' = $LastUpdate
-                }
-            }
-            if ($DEBUG) {
-                $Entry | Format-List
-            }
-            else {
-                $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName $SQL_TABLE_TO_UPDATE
-                try {
-                    Invoke-SQLquery -Query $updateQuery
-                }
-                catch {
-                    Write-Joblog -Message $_
+                    foreach ($partition in $Output.Volumes) {
+                        $Entry = [pscustomobject] @{
+                            'PartitionLetter'      = $($partition.Caption)
+                            'Label'                = $($partition.Label)
+                            'FileSystem'           = $($partition.FileSystem)
+                            'DriveCapacity_GB'     = $($partition.Capacity / 1GB)
+                            'DriveFreeSpace_GB'    = $($partition.FreeSpace / 1GB)
+                            'DriveUsed_Percentage' = $((($partition.Capacity - $partition.FreeSpace) / $partition.Capacity) * 100)
+                            'DNSHostName'          = $($jobName.split(";")[1])
+                            'LastUpdate'           = $LastUpdate
+                            'Row_ID'               = "$($jobName.split(";")[1])_$($partition.DriveLetter[0])"
+                        }
+                        if ($DEBUG) {
+                            $Entry | Format-List
+                        }
+                        else {
+                            $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry  -TableName $SQL_TABLE_TO_UPDATE -sqlPrimaryKey "Row_ID"
+                            try {
+                                Invoke-SQLquery -Query $updateQuery 
+                            }
+                            catch {
+                                Write-Error $_
+                                $updateQuery
+                            }
+                        }
+                    }
                 }
             }
             Remove-Job -Name $jobName
@@ -126,53 +130,6 @@ function Get-VolumeDetails {
         $remainingJobs | Remove-Job -Force
         Write-Joblog -Message "Background jobs were running longer than REMOTE_CONNECTION_TIMEOUT_SECONDS ($REMOTE_CONNECTION_TIMEOUT_SECONDS)"
     }
-}
-
-function Get-SystemDriveDetails {
-    param (
-        $Entry,
-        $Output
-    )
-    $SystemDrive = $Output.Volumes | Where-Object { $_.Caption -eq "C:\" }
-
-    $Entry.'SystemDriveCapacity_GB' = [math]::Round($($SystemDrive.Capacity / 1GB), 2)
-    $Entry.'SystemDriveFreeSpace_GB' = [math]::Round($($SystemDrive.FreeSpace / 1GB), 2)
-    $Entry.'SystemDriveUsed' = $(($SystemDrive.Capacity - $SystemDrive.FreeSpace) / $SystemDrive.Capacity)
-    $Entry.'SystemDriveUsed' = $(($Entry.'SystemDriveUsed') * 100)
-
-    return $Entry
-}
-
-function Get-AllDrivesDetails {
-    param (
-        $Entry,
-        $Output
-    )
-
-    $Drives = $Output.Volumes
-    if ($null -ne $Drives.Count) {
-        for ($i = 0; $i -lt $Drives.Count; $i++) {
-            $Entry.'AllDriveCapacity_GB' += ($Drives[$i].Capacity / 1GB)
-            $Entry.'AllDriveFreeSpace_GB' += ($Drives[$i].FreeSpace / 1GB)
-        }
-    }
-    else {
-        $Entry.'AllDriveCapacity_GB' = ($Drives.Capacity / 1GB)
-        $Entry.'AllDriveFreeSpace_GB' = ($Drives.FreeSpace / 1GB)
-    }
-
-    $Entry.'AllDriveUsed' = $(($($Entry.'AllDriveCapacity_GB') - $($Entry.'AllDriveFreeSpace_GB')) / $($Entry.'AllDriveCapacity_GB'))
-    $Entry.'AllDriveUsed' = $(($Entry.'AllDriveUsed' ) * 100)
-    
-    $Entry.'AllDriveCapacity_GB' = [math]::Round($($Entry.'AllDriveCapacity_GB'), 2)
-    $Entry.'AllDriveFreeSpace_GB' = [math]::Round($($Entry.'AllDriveFreeSpace_GB'), 2)
-
-    $Drives = $Output.Volumes | Where-Object { $_.Caption -ne "C:\" }
-    $Drives | ForEach-Object {
-        $Entry.'OtherDrivesDetails' += `
-            "$($_.Caption) - $([math]::Round(($_.Capacity / 1GB),2))GB - $([math]::Round(($_.FreeSpace / 1GB),2))GB`n" }
-
-    return $Entry
 }
 
 Invoke-Main
