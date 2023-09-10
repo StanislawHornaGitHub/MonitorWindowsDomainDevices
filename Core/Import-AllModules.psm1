@@ -52,11 +52,13 @@ New-Variable -Name "SQL_OBJECT_TABLES_WITHOUT_CHANGE_LOG" -Value @(
     "Storage"
 ) -Force -Scope Global -Option ReadOnly
 New-Variable -Name "COLUMNS_EXCLUDED_FROM_COMPARISON" -Value @(
-    "LastUpdate",
-    "Error",
-    "LastBootTime",
-    "CurrentlyLoggedOn",
-    "EstimatedSize_GB"
+    "LastUpdate", # Common field for all Object Tables
+    "Error", # Get-DeviceInventoryToMonitor
+    "LastBootTime", # Get-OSVersionInformation
+    "CurrentlyLoggedOn", # Get-OSVersionInformation
+    "EstimatedSize_GB", # Get-InstalledPackages
+    "DriveFreeSpace_GB", # Get-VolumeSpace
+    "DriveUsed_Percentage" # Get-VolumeSpace
 ) -Force -Scope Global -Option ReadOnly
 New-Variable -Name "TABLES_WHERE_TEMP_NAME_USE_DNSHOSTNAME" -Value @(
     "Packages"
