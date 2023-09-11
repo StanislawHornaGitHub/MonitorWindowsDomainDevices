@@ -93,6 +93,8 @@ function Get-SQLdataUpdateQuery {
         }
         $tempTableName = $tempTableName.Replace("-", "_")
         $tempTableName = $tempTableName.Replace(".", "_")
+        # Trim tempTableName to 109, because the lenght limit is 116, but each name starts with "#Temp_"
+        $tempTableName = $tempTableName[0..109] -join "" 
         $SQL_Query_Template = $SQL_Query_Template.Replace("TABLE_TEMPORARY_NAME_VARIABLE", $tempTableName)
     }
     else {
