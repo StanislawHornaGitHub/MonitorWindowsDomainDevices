@@ -35,7 +35,8 @@
 function Write-Joblog {
     param(
         $Message,
-        [switch]$Completed
+        [switch]$Completed,
+        $EXIT_CODE
     )
     if ($Message) {
         $LOG_OBJECT.Message += "$($TIMER.Elapsed.ToString("hh\:mm\:ss\.fff")) - $Message`n"
