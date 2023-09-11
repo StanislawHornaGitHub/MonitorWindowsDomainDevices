@@ -33,8 +33,15 @@
     ChangeLog:
 
     Date            Who                     What
-    10.09.2023      Stanisław Horna         Redesigned format of pushing data to SQL,
+    10-09-2023      Stanisław Horna         Redesigned format of pushing data to SQL,
                                             each partition has own row in SQL Table
+    11-09-2023      Stanisław Horna         Additional columns added:
+                                                - Automount
+                                                - BootVolume
+                                                - Compressed
+                                                - IndexingEnabled
+                                                - PageFilePresent
+                                                - QuotasEnabled
 #>
 param(
     [switch]$DEBUG
@@ -44,7 +51,7 @@ New-Variable -Name "SCRIPT_NAME" -Value "Get-VolumeSpace" -Force -Scope Global -
 New-Variable -Name "TIMER" -Value $([System.Diagnostics.Stopwatch]::StartNew()) -Force -Scope Global
 
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
-New-Variable -Name "SQL_TABLE_TO_UPDATE" -Value "Partitions" -Force -Scope Script -Option ReadOnly
+New-Variable -Name "SQL_TABLE_TO_UPDATE" -Value "Object_Partitions" -Force -Scope Script -Option ReadOnly
 
 New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 60 -Force -Scope Script -Option ReadOnly
 New-Variable -Name 'INPUT_HASH' -Value  @{
@@ -55,7 +62,13 @@ New-Variable -Name 'INPUT_HASH' -Value  @{
             "FileSystem", 
             "Capacity", 
             "FreeSpace", 
-            "Label")
+            "Label",
+            "Automount",
+            "BootVolume",
+            "Compressed",
+            "IndexingEnabled",
+            "PageFilePresent",
+            "QuotasEnabled")
         "Filter"     = "Caption like '%:%' AND (FileSystem like 'NTFS' OR FileSystem like 'REFS')"
     }
 } -Force -Scope Script -Option ReadOnly
@@ -96,15 +109,21 @@ function Get-VolumeDetails {
                 If ($success) {
                     foreach ($partition in $Output.Volumes) {
                         $Entry = [pscustomobject] @{
-                            'PartitionLetter'      = $($partition.Caption)
-                            'Label'                = $($partition.Label)
-                            'FileSystem'           = $($partition.FileSystem)
-                            'DriveCapacity_GB'     = $($partition.Capacity / 1GB)
-                            'DriveFreeSpace_GB'    = $($partition.FreeSpace / 1GB)
+                            'PartitionLetter' = $($partition.Caption)
+                            'DNSHostName' = $($jobName.split(";")[1])
+                            'Label' = $($partition.Label)
+                            'FileSystem' = $($partition.FileSystem)
+                            'DriveCapacity_GB' = $($partition.Capacity / 1GB)
+                            'DriveFreeSpace_GB' = $($partition.FreeSpace / 1GB)
                             'DriveUsed_Percentage' = $((($partition.Capacity - $partition.FreeSpace) / $partition.Capacity) * 100)
-                            'DNSHostName'          = $($jobName.split(";")[1])
-                            'LastUpdate'           = $LastUpdate
-                            'Row_ID'               = "$($jobName.split(";")[1])_$($partition.DriveLetter[0])"
+                            'Automount' = $partition.Automount
+                            'BootVolume' = $partition.BootVolume
+                            'Compressed' = $partition.Compressed
+                            'IndexingEnabled' = $partition.IndexingEnabled
+                            'PageFilePresent' = $partition.PageFilePresent
+                            'QuotasEnabled' = $partition.QuotasEnabled
+                            'LastUpdate' = $LastUpdate
+                            'Row_ID' = "$($jobName.split(";")[1])_$($partition.DriveLetter[0])"
                         }
                         if ($DEBUG) {
                             $Entry | Format-List
