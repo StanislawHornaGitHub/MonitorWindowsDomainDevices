@@ -43,7 +43,7 @@ New-Variable -Name "SCRIPT_NAME" -Value "Get-OSVersionInformation" -Force -Scope
 New-Variable -Name "TIMER" -Value $([System.Diagnostics.Stopwatch]::StartNew()) -Force -Scope Global
 
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
-New-Variable -Name "SQL_TABLE_TO_UPDATE" -Value "OperatingSystem" -Force -Scope Script -Option ReadOnly
+New-Variable -Name "SQL_TABLE_TO_UPDATE" -Value "Object_OperatingSystem" -Force -Scope Script -Option ReadOnly
 
 New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 60 -Force -Scope Script -Option ReadOnly
 
