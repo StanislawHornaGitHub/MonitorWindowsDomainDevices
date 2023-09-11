@@ -70,8 +70,8 @@ function Invoke-Main {
         Get-DevicePackagesFromJob
     }
     catch {
+        $Script:EXIT_CODE = 1
         Write-Joblog -Message $_.Exception.Message
-        $EXIT_CODE = 1
     }
     finally {
         Write-Joblog -Completed
@@ -83,7 +83,7 @@ function Get-DevicePackagesAsJob {
     foreach ($C in $Computer) {
         Start-Job -Name "$($C.DNSHostName)" `
             -InitializationScript {
-                Import-Module "./Core/Import-AllModules.psm1"
+            Import-Module "./Core/Import-AllModules.psm1"
         } -ScriptBlock {
             param(
                 $ComputerName,
@@ -93,8 +93,11 @@ function Get-DevicePackagesAsJob {
                 param(
                     $INPUT_HASH 
                 )
+                # Get information from registry
                 $Output = Get-ItemProperty -Path $INPUT_HASH.REGISTRY_KEYS | Select-Object  $INPUT_HASH.PROPERTY_FIELDS
+                # Remove entries without DisplayName
                 $Output = $Output | Where-Object { $null -ne $_.DisplayName }
+                # Merge entries refering to the same package
                 $temphash = @{}
                 $Output | ForEach-Object {
                     $thisLine = $_
@@ -113,9 +116,25 @@ function Get-DevicePackagesAsJob {
                 }
                 return $($temphash.Values)
             } -ArgumentList $INPUT_HASH 
+            # Add DNSHostName to output
             $Output | Add-Member -MemberType NoteProperty -Name "DNSHostName" -Value $ComputerName
+            # Convert EstimatedSize to GBs
             $Output | Add-Member -MemberType NoteProperty -Name "EstimatedSize_GB" -Value 0
             $Output | ForEach-Object { $_.EstimatedSize_GB = $_.EstimatedSize / (1024 * 1024) }
+            # Create RowID
+            $Output | Add-Member -MemberType NoteProperty -Name "Row_ID" -Value ""
+            # Remove SQL forbidden signs in variable name
+            $Output | ForEach-Object { 
+                $_.Row_ID = "$($_.DisplayName)_$($_.DNSHostName)" 
+                $_.Row_ID = $_.Row_ID.Replace(" ", "_")
+                $_.Row_ID = $_.Row_ID.Replace("+", "p")
+                $_.Row_ID = $_.Row_ID.Replace("(", "")
+                $_.Row_ID = $_.Row_ID.Replace(")", "")
+                $_.Row_ID = $_.Row_ID.Replace(":", "") 
+                $_.Row_ID = $_.Row_ID.Replace(",", "") 
+                $_.Row_ID = $_.Row_ID.Replace("\", "-")
+                $_.Row_ID = $_.Row_ID.Replace("/", "-")
+            }
             return $Output
         } -ArgumentList $($C.DNSHostName), $INPUT_HASH | Out-Null
     }
@@ -127,7 +146,7 @@ function Get-DevicePackagesFromJob {
         $jobName = $null
         $jobName = (Get-Job | Where-Object { ($_.State -ne "Running") } | Select-Object -First 1).Name
         if ($null -ne $jobName) {
-            $Entry = $null
+            $Output = $null
             Write-Host "Operations during timeout - $jobname"
             $success = $false
             try {
@@ -141,19 +160,16 @@ function Get-DevicePackagesFromJob {
             }
             finally {
                 if ($success) {
-                    $Entry = $Output
-                    $Entry | Add-Member -MemberType NoteProperty -Name "Row_ID" -Value ""
-                    $Entry | Add-Member -MemberType NoteProperty -Name "LastUpdate" -Value $LastUpdate
-                    $Entry | ForEach-Object { $_.Row_ID = "$($_.DisplayName)_$($_.DNSHostName)" }
-                    $Entry | ForEach-Object { $_.Row_ID = $_.Row_ID.Replace(" ", "_") }
+                    # Add LastUpdate date
+                    $Output | Add-Member -MemberType NoteProperty -Name "LastUpdate" -Value $LastUpdate
                 }
             }
             if ($DEBUG) {
                 #$Entry | Format-List
-                Write-Host "$jobname - $($entry.count) Packages"
+                Write-Host "$jobname - $($Output.count) Packages"
             }
             else {
-                foreach ($package in $Entry) {
+                foreach ($package in $Output) {
                     $Row = $package | Select-Object -Property * -ExcludeProperty RunspaceId, PSComputerName, EstimatedSize, PSShowComputerName
                     $updateQuery = Get-SQLdataUpdateQuery -Entry $Row  -TableName $SQL_TABLE_TO_UPDATE -sqlPrimaryKey "Row_ID"
                     try {
@@ -165,7 +181,6 @@ function Get-DevicePackagesFromJob {
                     }
                 }
             }
-
             Remove-Job -Name $jobName
         }
     }
