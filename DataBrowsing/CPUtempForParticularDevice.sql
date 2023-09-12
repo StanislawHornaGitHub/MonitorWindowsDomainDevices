@@ -7,6 +7,6 @@ SELECT TOP(10)
     ROUND(CPU_Temperature_Current,1,1) AS 'CPU Temperature C',
     ROUND(GPU_Temperature_Current,1,1) AS 'GPU Temperature C',
     ROUND(PowerConsumption_Current,1,1) AS 'Power Consumption W'
-FROM PowerAndTemperature
+FROM Event_PowerAndTemperature
 WHERE DNSHostName = CONCAT(@DeviceDNSHostname, @DomainName)
 ORDER BY [TimeStamp] DESC

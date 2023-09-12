@@ -4,6 +4,6 @@ Update Inventory
 Set IsHardwareMonitorDeployed = @HardwareMonitorIsNotDeployed
 WHERE DNSHostName IN (
     SELECT DNSHostName
-    From Hardware
+    From Object_Hardware
     WHERE DeviceModel = 'Virtual Machine'
     )
