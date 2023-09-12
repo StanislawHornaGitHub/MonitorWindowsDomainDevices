@@ -20,7 +20,7 @@
 
 .NOTES
 
-    Version:            1.0
+    Version:            1.1
     Author:             Stanisław Horna
     Mail:               stanislawhorna@outlook.com
     GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
@@ -28,7 +28,7 @@
     ChangeLog:
 
     Date            Who                     What
-
+    12-09-2023      Stanisław Horna         Function Get-SQLifDataNotExistInsertQuery added
 #>
 function Invoke-SQLquery {
     param (
@@ -112,6 +112,27 @@ function Get-SQLdataUpdateQuery {
     # Put INSERT sub query to the template
     $SQL_Query_Template = $SQL_Query_Template.Replace("INSERT_QUERY_BLOCK_VARIABLE", $SQL_Insert_Query)
 
+    return $SQL_Query_Template
+}
+function Get-SQLifDataNotExistInsertQuery {
+    param (
+        $Entry,
+        $TableName,
+        $sqlPrimaryKey = $SQL_PRIMARY_KEY
+    )
+    # Load Insert Data SQL Query template
+    $SQL_Query_Template = Get-Content -Path $SQL_INSERT_DATA_IF_NOT_EXIST_TEMPLATE -Raw
+    # Create INSERT row SQL Query
+    $SQL_Insert_Query = Get-SQLinsertSection -Entry $Entry -TableName $TableName -sqlPrimaryKey $sqlPrimaryKey
+    # Put entry identity column name to the template
+    $SQL_Query_Template = $SQL_Query_Template.Replace("PRIMARY_KEY_VARIABLE", $sqlPrimaryKey)
+    # Put table name to the template
+    $SQL_Query_Template = $SQL_Query_Template.Replace("TABLE_NAME_VARIABLE", $TableName)
+    # Put entry identity value to the template
+    $SQL_Query_Template = $SQL_Query_Template.Replace("ROW_ID_VALUE_TO_CHECK", $($Entry.$sqlPrimaryKey))
+    # Put INSERT sub query to the template
+    $SQL_Query_Template = $SQL_Query_Template.Replace("INSERT_QUERY_BLOCK_VARIABLE", $SQL_Insert_Query)
+    
     return $SQL_Query_Template
 }
 function Get-SQLupdateSection {
