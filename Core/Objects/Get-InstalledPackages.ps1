@@ -155,7 +155,6 @@ function Get-DevicePackagesFromJob {
             }
             catch {
                 Write-Joblog -Message "$jobname - $($_.Exception.Message)"
-                Write-Error $_
                 $Script:EXIT_CODE = 1 
             }
             finally {
@@ -176,7 +175,7 @@ function Get-DevicePackagesFromJob {
                         Invoke-SQLquery -Query $updateQuery 
                     }
                     catch {
-                        Write-Error $_
+                        Write-Joblog -Message "$jobname - $($_.Exception.Message)"
                         $updateQuery
                     }
                 }

@@ -44,10 +44,6 @@
     Date            Who                     What
 
 #>
-<#
-    .DESCRIPTION
-    Script to get Temperature
-#>
 param(
     [switch]$DEBUG
 )
