@@ -188,19 +188,19 @@ function Get-LogonType {
     )
     switch ($ID) {
         2 {
-            return "Interactive"
+            return "Interactive ($ID)"
         }
         3 {
-            return "Network"
+            return "Network ($ID)"
         }
         7 {
-            return "Unlock"
+            return "Unlock ($ID)"
         }
         10 {
-            return "Remote Interactive"
+            return "Remote Interactive ($ID)"
         }
         11 {
-            return "Cached Interactive"
+            return "Cached Interactive ($ID)"
         }
     }
 }
