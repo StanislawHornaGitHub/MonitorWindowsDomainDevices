@@ -204,7 +204,7 @@ function Start-DataRetrievingJob {
         # if job is still running 
         if ($Currentjob.State -eq "Running") {
             $Entry.'Last_Exit_Code' = 111
-            $Entry.'Errors' = "Last execution did not end, Stop will be forced"
+            $Entry.'Errors' = "$((Get-date).ToString("yyyy-MM-dd HH:mm:ss")) - Last execution did not end, Stop will be forced"
             Write-Log -Message "Job $Name last execution did not end" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
             Stop-Job -Name $Name -Confirm:$false
         }
