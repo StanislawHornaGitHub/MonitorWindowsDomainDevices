@@ -74,7 +74,7 @@ function Invoke-Main {
         Write-Joblog -Message $_.Exception.Message
     }
     finally {
-        Write-Joblog -Completed
+        Write-Joblog -Completed -EXIT_CODE $EXIT_CODE
         exit $EXIT_CODE
     }
 }

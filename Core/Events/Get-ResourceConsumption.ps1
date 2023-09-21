@@ -82,7 +82,7 @@ function Invoke-Main {
         $EXIT_CODE = 1
     }
     finally {
-        Write-Joblog -Completed
+        Write-Joblog -Completed -EXIT_CODE $EXIT_CODE
         exit $EXIT_CODE
     }
 }
