@@ -47,7 +47,7 @@ Param(
 )
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
-New-Variable -Name "SCRIPT_NAME" -Value "Get-DeviceHardwaredetails" -Force -Scope Global -Option ReadOnly
+New-Variable -Name "SCRIPT_NAME" -Value "Get-DeviceInventoryToMonitor" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "TIMER" -Value $([System.Diagnostics.Stopwatch]::StartNew()) -Force -Scope Global
 
 New-Variable -Name "DNS_SERVER_NAME" -Value "pfsense" -Force -Scope Script -Option ReadOnly
@@ -65,7 +65,7 @@ function Invoke-Main {
         $EXIT_CODE = 1
     }
     finally {
-        Write-Joblog -Completed
+        Write-Joblog -Completed -EXIT_CODE $EXIT_CODE
         exit $EXIT_CODE
     }
 }
