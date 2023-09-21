@@ -25,7 +25,7 @@
     ChangeLog:
 
     Date            Who                     What
-
+    21-09-2023      Stanisław Horna         Old log files auto-cleanup
 #>
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "SCHEDULED_TASK_NAME" -Value "Process_Coordinator" -Force -Scope Script -Option ReadOnly
@@ -70,6 +70,8 @@ function Invoke-MainLoop {
         New-Variable -Name "PROCESS_COORDINATOR_LOG_PATH" `
             -Value "$LOGS_ROOT_DIRECTORY\$((Get-Date).ToString("yyyy-MM-dd"))_Process_coordinator_Log.txt" `
             -Force -Scope Global -Option ReadOnly
+        # Cleanup old logs
+        Remove-OldLogFiles
         # Get jobs to run and time thresholds
         $Config = Get-ConfigurationDetails
         $SleepTime = ($Script:MAX_SLEEP_INTERVAL * 1000)
@@ -456,6 +458,32 @@ function Remove-OldJobs {
     # To avoid errors remove remaining jobs
     Get-Job | Remove-Job -Force
     Write-Log -Message "Old jobs removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+}
+function Remove-OldLogFiles {
+    # Calculate the date limit based on the threshold in days
+    $date = (Get-Date -Hour 0 -Minute 0 -Second 0).AddDays((-1 * $DAYS_TO_KEEP_LOGS_IN_FILE_FORMAT))
+    # Get list of all files in root logs directory
+    $rootLogs = Get-ChildItem -Path $LOGS_ROOT_DIRECTORY -File
+    # Filter the files which should be removed
+    $rootLogs = $rootLogs | Where-Object {
+        $logdate = $_.Name.Split("_")[0]
+        [System.DateTime]::ParseExact($logdate, "yyyy-MM-dd", $null) -lt $date
+    }
+    # remove filtered files
+    $rootLogs | ForEach-Object {
+        Remove-Item -Path $($_.FullName) -Force -Confirm:$false
+    }
+    # Get list of all files in job logs directory
+    $jobLogs = Get-ChildItem -Path $LOGS_JOB_DIRECTORY -File
+    # Filter the files which should be removed
+    $jobLogs = $jobLogs | Where-Object {
+        $logdate = $_.Name.Split("_")[0]
+        [System.DateTime]::ParseExact($logdate, "yyyy-MM-dd", $null) -lt $date
+    }
+    # remove filtered files
+    $jobLogs | ForEach-Object {
+        Remove-Item -Path $($_.FullName) -Force -Confirm:$false
+    }
 }
 
 Invoke-Main
