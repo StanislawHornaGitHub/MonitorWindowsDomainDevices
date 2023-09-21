@@ -301,11 +301,17 @@ function Get-ConfigurationDetails {
     }
     # Run the SQL Query and get last execution dates
     $LastExecution = Get-LastExecution
+    # Put last refresh intervals into SQL table
+    Update-RefreshIntervalinSQLtable -Inputhash $hash
     # Loop through data from SQL and overwrite the default last refresh date with the actual one
     for ($i = 0; $i -lt $LastExecution.Count; $i++) {
         $Type = $LastExecution[$i].Type
         $Name = $LastExecution[$i].Name
         $LastRefresh = $LastExecution[$i].Last_Start_Time
+        # Skip the iteration if value is null
+        if ($null -eq $LastRefresh) {
+            continue
+        }
         try {
             $hash.$Type.$Name.Last_Refresh_time = $LastRefresh
         }
@@ -325,6 +331,24 @@ function Get-ConfigurationDetails {
     New-Variable -Name "NUMBER_OF_TIMES_SHIFT_SCRIPT_RUN_CAN_BE_USED" -Value $($Count) -Force -Scope Script
     # Return built hash
     return $hash
+}
+function Update-RefreshIntervalinSQLtable {
+    param(
+        $Inputhash
+    )
+    $powershellScriptTypes = @("SyncData", "Events", "Objects")
+    foreach ($T in $powershellScriptTypes) {
+        foreach ($S in $Inputhash.$T.Keys) {
+            $Entry = [PSCustomObject]@{
+                'Name'                        = $S
+                'Refresh_Interval_in_seconds' = $($Inputhash.$T.$S.Refresh_Interval_in_seconds)
+            }
+            # Create appropriate Query 
+            $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
+            # Execute Query on the Server
+            Invoke-SQLquery -Query $Query -SQLDBName $SQL_LOG_DATABASE
+        }
+    }
 }
 function Stop-ProcessCoordinator {
     # Check if STOP_PROCESS_COORDINATOR was set to 1 
@@ -460,6 +484,7 @@ function Remove-OldJobs {
     Write-Log -Message "Old jobs removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
 }
 function Remove-OldLogFiles {
+    Write-Log -Message "Logs Cleanup invoked" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
     # Calculate the date limit based on the threshold in days
     $date = (Get-Date -Hour 0 -Minute 0 -Second 0).AddDays((-1 * $DAYS_TO_KEEP_LOGS_IN_FILE_FORMAT))
     # Get list of all files in root logs directory
@@ -484,6 +509,7 @@ function Remove-OldLogFiles {
     $jobLogs | ForEach-Object {
         Remove-Item -Path $($_.FullName) -Force -Confirm:$false
     }
+    Write-Log -Message "Logs Cleanup completed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
 }
 
 Invoke-Main
