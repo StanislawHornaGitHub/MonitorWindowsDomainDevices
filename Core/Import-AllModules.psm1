@@ -85,7 +85,7 @@ New-Variable -Name "JOB_LOG_PATH" -Value "$LOGS_ROOT_DIRECTORY\Job\$((Get-Date).
 New-Variable -Name "PROCESS_COORDINATOR_LOG_PATH" -Value "$LOGS_ROOT_DIRECTORY\$((Get-Date).ToString("yyyy-MM-dd"))_Process_coordinator_Log.txt" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "PIPELINE_LOGS_DIRECTORY" -Value "$LOGS_ROOT_DIRECTORY\Pipelines" -Force -Scope Global -Option ReadOnly
 
-New-Variable -Name "DEVICES_RUNNING_OTHER_OS_THAN_WIN" -Value @(
+New-Variable -Name "DEVICES_TO_EXCLUDE_FROM_MONITORING" -Value @(
     "mac-mini.horna.local",
     "truenas.horna.local"
 ) -Force -Scope Global -Option ReadOnly

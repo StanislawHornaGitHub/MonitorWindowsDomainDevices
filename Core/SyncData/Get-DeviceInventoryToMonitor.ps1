@@ -39,6 +39,7 @@
     ChangeLog:
 
     Date            Who                     What
+    21-09-2023      Stanisław Horna         Filtering out devices which are not running Windows OS
 
 #>
 Param(
@@ -46,7 +47,7 @@ Param(
 )
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
-New-Variable -Name "PIPE_NAME" -Value $(($MyInvocation).MyCommand.Name) -Force -Scope Global -Option ReadOnly
+New-Variable -Name "SCRIPT_NAME" -Value "Get-DeviceHardwaredetails" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "TIMER" -Value $([System.Diagnostics.Stopwatch]::StartNew()) -Force -Scope Global
 
 New-Variable -Name "DNS_SERVER_NAME" -Value "pfsense" -Force -Scope Script -Option ReadOnly
@@ -55,26 +56,27 @@ New-Variable -Name "TEST_PS_REMOTING_TIMEOUT" -Value 10 -Scope Script -Option Re
 
 function Invoke-Main {
     try {
-        #Write-MainLog
+        Write-Joblog
         Get-ComputerList
         Get-ComputerIsActive
     }
     catch {
-        Write-Error -Message $_.Exception.Message
+        Write-Joblog -Message $_.Exception.Message
         $EXIT_CODE = 1
     }
     finally {
-        #Write-MainLog -Completed
+        Write-Joblog -Completed
         exit $EXIT_CODE
     }
 }
 
 function Get-ComputerList {
-   
     try {
-        # Get list of all devices joined to AD Domian
-        $Computer = Get-ADComputer -Filter * -ErrorAction Stop   
-        $Computer = $Computer | Where-Object { $_.DNSHostName -notin $DEVICES_RUNNING_OTHER_OS_THAN_WIN }
+        # Get list of all Windows running devices joined to AD Domian
+        $Computer = Get-ADComputer -filter * -Properties OperatingSystem -ErrorAction Stop | `
+            Where-Object { $_.OperatingSystem -like "Windows*" } | `
+            Select-Object DNSHostname, Enabled
+        $Computer = $Computer | Where-Object { $_.DNSHostName -notin $DEVICES_TO_EXCLUDE_FROM_MONITORING }
     }
     catch {
         throw $_.Exception.Message
@@ -84,7 +86,6 @@ function Get-ComputerList {
         $Computer = $Computer | Where-Object { $_.Enabled -eq $true }
     }
     $Script:Computer = $Computer
-
 }
 
 function Get-ComputerIsActive {
