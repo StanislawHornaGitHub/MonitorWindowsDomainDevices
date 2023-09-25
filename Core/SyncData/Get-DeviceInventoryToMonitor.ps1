@@ -203,7 +203,7 @@ function Test-PSRemotingServices {
     catch {
         throw $_.Exception.Message
     }
-    Remove-Job -Name $ComputerName | Out-Null
+    Remove-Job -Name $ComputerName -Force | Out-Null
     # Get services which are not running
     $notRunningServices = $Rjob | Where-Object { $_.Status -ne "Running" }
     # If all of them are running, PS Remoting is working 
