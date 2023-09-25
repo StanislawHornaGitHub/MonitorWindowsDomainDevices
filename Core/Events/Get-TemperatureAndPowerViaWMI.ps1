@@ -5,7 +5,7 @@
 .DESCRIPTION
     Script is connecting to each device marked as active in SQL Inventory Table and retrieving information.
     For each device script is creating separate Powershell Background job responsible for collecting data.
-    Results are captured and pushed to SQL OperatingSystem Table
+    Results are captured and pushed to SQL TemperatureAndPower Table
 
     To collect such data Open Hardware Monitor is required which is providing such data to WMI.
     On each device Open Hardware Monitor is started to collect data and right after it is closed.

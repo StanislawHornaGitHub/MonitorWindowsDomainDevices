@@ -5,7 +5,7 @@
 .DESCRIPTION
     Script is connecting to each device marked as active in SQL Inventory Table and retrieving information.
     For each device script is creating separate Powershell Background job responsible for collecting data.
-    Results are captured and pushed to SQL OperatingSystem Table
+    Results are captured and pushed to SQL ResourceConsumption Table
 
 .INPUTS
     DEBUG - switch - If it is set than no data will be pushed to the SQL server,
