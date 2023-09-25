@@ -401,7 +401,7 @@ function Stop-AllJobs {
             Invoke-SQLquery -Query $Query -SQLDBName $SQL_LOG_DATABASE
         }
     }
-    Write-Log -Message "Exiting waiting loop" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+    Write-Log -Message "Wait loop exited" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
     # Get jobs which did not end in waiting period
     $remainingJobs = Get-Job
     # if there are no such jobs just continue
