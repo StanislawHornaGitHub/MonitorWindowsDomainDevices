@@ -16,7 +16,12 @@
 .OUTPUTS
     Based on input DEBUG setting data is displayed in the console or pushed to the SQL Server
 
-
+        Timestamp - Event creation time 
+        DNSHostName - Device DNSHostName 
+        BootType:
+            - Normal boot
+            - Fast start
+            - Wakeup from Hibernation
 
 .NOTES
 
