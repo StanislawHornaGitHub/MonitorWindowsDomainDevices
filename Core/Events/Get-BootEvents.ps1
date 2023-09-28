@@ -112,7 +112,6 @@ function Start-CollectingBootEventsAsJob {
                         'BootType'    = $(Get-BootTypeFromHex -MessageString $E.Message)
                         'Row_ID'      = ""
                     }
-
                     $Output.Add($Entry) | Out-Null
                 }
                 return $Output
