@@ -63,7 +63,7 @@ function Invoke-Main {
         exit $EXIT_CODE
     }
 }
-functionStart-CollectingBootEventsAsJob {
+function Start-CollectingBootEventsAsJob {
     $Computer = Get-ComputerListToProcess
     foreach ($C in $Computer) {
         Start-Job -Name "$($C.DNSHostName)" -ScriptBlock {
