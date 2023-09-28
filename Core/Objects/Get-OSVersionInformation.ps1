@@ -85,7 +85,7 @@ New-Variable -Name 'INPUT_HASH' -Value @{
 function Invoke-Main {
     Write-Joblog
     try {
-        Get-OSVersionAsJob
+        Start-CollectingOSVersionAsJob
         Get-WindowsVersionFromJob
     }
     catch {
@@ -97,7 +97,7 @@ function Invoke-Main {
         exit $EXIT_CODE
     }
 }
-function Get-OSVersionAsJob {
+function Start-CollectingOSVersionAsJob {
     $Computer = Get-ComputerListToProcess
     foreach ($C in $Computer) {
         Start-Job -Name "$($C.DNSHostName)" -ScriptBlock {

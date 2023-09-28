@@ -66,7 +66,7 @@ New-Variable -Name 'INPUT_HASH' -Value @{
 function Invoke-Main {
     Write-Joblog
     try {
-        Get-DevicePackagesAsJob
+        Start-CollectingDevicePackagesAsJob
         Get-DevicePackagesFromJob
     }
     catch {
@@ -78,7 +78,7 @@ function Invoke-Main {
         exit $EXIT_CODE
     }
 }
-function Get-DevicePackagesAsJob {
+function Start-CollectingDevicePackagesAsJob {
     $Computer = Get-ComputerListToProcess
     foreach ($C in $Computer) {
         Start-Job -Name "$($C.DNSHostName)" `

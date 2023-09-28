@@ -71,7 +71,7 @@ New-Variable -Name "FILTER_X_PATH" -Value "
 function Invoke-Main {
     Write-Joblog
     try {
-        Get-LogonEventsAsJob
+        Start-CollectingLogonEventsAsJob
         Get-LogonEventsFromJob
     }
     catch {
@@ -83,7 +83,7 @@ function Invoke-Main {
         exit $EXIT_CODE
     }
 }
-function Get-LogonEventsAsJob {
+function Start-CollectingLogonEventsAsJob {
     $Computer = Get-ComputerListToProcess -PredefinedQuery "ActiveDevicesWithLogonsMonitoring.sql"
     foreach ($C in $Computer) {
         Start-Job -Name "$($C.DNSHostName)" -ScriptBlock {

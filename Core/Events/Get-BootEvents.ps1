@@ -51,7 +51,7 @@ New-Variable -Name "FILTER_X_PATH" -Value "*[System[EventID=27]]" -Force -Scope 
 function Invoke-Main {
     Write-Joblog
     try {
-        Get-BootEventsAsJob
+        Start-CollectingBootEventsAsJob
         Get-BootEventsFromJob
     }
     catch {
@@ -63,7 +63,7 @@ function Invoke-Main {
         exit $EXIT_CODE
     }
 }
-function Get-BootEventsAsJob {
+functionStart-CollectingBootEventsAsJob {
     $Computer = Get-ComputerListToProcess
     foreach ($C in $Computer) {
         Start-Job -Name "$($C.DNSHostName)" -ScriptBlock {

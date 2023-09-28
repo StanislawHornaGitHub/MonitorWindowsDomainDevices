@@ -59,7 +59,7 @@ New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 60 -Force -Scope S
 function Invoke-Main {
     Write-Joblog
     try {
-        Get-OpenHardwareMonitorAsJob
+        Start-CollectingOHMDataAsJob
         Get-OpenHardwareMonitorFromJob
     }
     catch {
@@ -71,7 +71,7 @@ function Invoke-Main {
         exit $EXIT_CODE
     }
 }
-function Get-OpenHardwareMonitorAsJob {
+function Start-CollectingOHMDataAsJob {
     $Computer = Get-ComputerListToProcess -PredefinedQuery "DevicesWithOpenHardwareMonitor.sql"
     foreach ($C in $Computer) {
         Start-Job -Name "$($C.DNSHostName)" -ScriptBlock {
