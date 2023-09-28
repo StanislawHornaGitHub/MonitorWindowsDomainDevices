@@ -124,8 +124,7 @@ function Get-BootEventsAsJob {
 function Get-BootEventsFromJob {
     $Time = [System.Diagnostics.Stopwatch]::StartNew()
     while ($null -ne (Get-Job) -and ($Time.ElapsedMilliseconds -le ($REMOTE_CONNECTION_TIMEOUT_SECONDS * 1000))) {
-        $jobName = $null
-        $jobName = (Get-Job | Where-Object { ($_.State -ne "Running") } | Select-Object -First 1).Name
+        $jobName = Get-CompletedJobName
         if ($null -ne $jobName) {
             Write-Host "Operations during timeout - $jobname"
             $Output = $null
@@ -165,14 +164,9 @@ function Get-BootEventsFromJob {
                     }
                 }
             }
-
             Remove-Job -Name $jobName
         }
     }
-    $remainingJobs = Get-Job
-    if ($null -ne $remainingJobs) {
-        $remainingJobs | Remove-Job -Force
-        Write-Joblog -Message "Background jobs were running longer than REMOTE_CONNECTION_TIMEOUT_SECONDS ($REMOTE_CONNECTION_TIMEOUT_SECONDS)"
-    }
+    Remove-RemainingJobs
 }
 Invoke-Main

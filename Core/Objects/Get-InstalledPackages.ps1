@@ -143,8 +143,7 @@ function Get-DevicePackagesFromJob {
     $Time = [System.Diagnostics.Stopwatch]::StartNew()
     $LastUpdate = (Get-Date).ToString("yyyy-MM-dd HH:mm")
     while ($null -ne (Get-Job) -and ($Time.ElapsedMilliseconds -le ($REMOTE_CONNECTION_TIMEOUT_SECONDS * 1000))) {
-        $jobName = $null
-        $jobName = (Get-Job | Where-Object { ($_.State -ne "Running") } | Select-Object -First 1).Name
+        $jobName = Get-CompletedJobName
         if ($null -ne $jobName) {
             $Output = $null
             Write-Host "Operations during timeout - $jobname"
@@ -183,12 +182,7 @@ function Get-DevicePackagesFromJob {
             Remove-Job -Name $jobName
         }
     }
-    $remainingJobs = Get-Job
-    if ($null -ne $remainingJobs) {
-        $remainingJobs | Remove-Job -Force
-        Write-Joblog -Message "Background jobs were running longer than REMOTE_CONNECTION_TIMEOUT_SECONDS ($REMOTE_CONNECTION_TIMEOUT_SECONDS)"
-    }
-    
+    Remove-RemainingJobs   
 }
 
 Invoke-Main

@@ -31,6 +31,7 @@
 Import-Module .\Core\Functions\RetrievingData.psm1
 Import-Module .\Core\Functions\Logging.psm1
 Import-Module .\Core\SQL\Module\SQL.psm1
+Import-Module .\Core\Functions\Utility.psm1
 
 ##########################
 ## SQL DATABASE SECTION ##
