@@ -53,8 +53,8 @@ New-Variable -Name "FILTER_X_PATH" -Value "*[System[(Level=1  or Level=2)]]" -Fo
 function Invoke-Main {
     Write-Joblog
     try {
-        Start-CollectingBootEventsAsJob
-        Get-BootEventsFromJob
+        Start-CollectingAppErrorEventsAsJob
+        Get-AppErrorEventsFromJob
     }
     catch {
         Write-Joblog -Message $_.Exception.Message
@@ -65,7 +65,7 @@ function Invoke-Main {
         exit $EXIT_CODE
     }
 }
-function Start-CollectingBootEventsAsJob {
+function Start-CollectingAppErrorEventsAsJob {
     $Computer = Get-ComputerListToProcess -PredefinedQuery "ActiveDevicesWithLogonsMonitoring.sql"
     foreach ($C in $Computer) {
         Start-Job -Name "$($C.DNSHostName)" -ScriptBlock {
@@ -95,7 +95,7 @@ function Start-CollectingBootEventsAsJob {
         } -ArgumentList $($C.DNSHostName), $FILTER_X_PATH | Out-Null
     }
 }
-function Get-BootEventsFromJob {
+function Get-AppErrorEventsFromJob {
     $Time = [System.Diagnostics.Stopwatch]::StartNew()
     while ($null -ne (Get-Job) -and ($Time.ElapsedMilliseconds -le ($REMOTE_CONNECTION_TIMEOUT_SECONDS * 1000))) {
         $jobName = Get-CompletedJobName
