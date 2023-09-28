@@ -147,20 +147,14 @@ function Get-DevicePackagesFromJob {
         if ($null -ne $jobName) {
             $Output = $null
             Write-Host "Operations during timeout - $jobname"
-            $success = $false
             try {
                 $Output = Receive-Job -Name $jobName -ErrorAction Stop
-                $success = $true
+                # Add LastUpdate date
+                $Output | Add-Member -MemberType NoteProperty -Name "LastUpdate" -Value $LastUpdate
             }
             catch {
                 Write-Joblog -Message "$jobname - $($_.Exception.Message)"
                 $Script:EXIT_CODE = 1 
-            }
-            finally {
-                if ($success) {
-                    # Add LastUpdate date
-                    $Output | Add-Member -MemberType NoteProperty -Name "LastUpdate" -Value $LastUpdate
-                }
             }
             if ($DEBUG) {
                 #$Entry | Format-List

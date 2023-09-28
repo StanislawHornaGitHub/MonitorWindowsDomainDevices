@@ -105,30 +105,25 @@ function Get-RecourceConsumption {
                 'NIC_Received_MBps'    = 0
 
             }
-            $success = $false
+
             try {
                 $Output = Receive-Job -Name $jobName -ErrorAction Stop
-                $success = $true
+                $Entry.CPU_Load_Percentage = ($Output.'CPU'.LoadPercentage | Measure-Object -Average).Average
+
+                $Entry.RAM_Usage_Percentage = ($($Output.'RAM'.TotalVisibleMemorySize) - $($Output.'RAM'.FreePhysicalMemory))
+                $Entry.RAM_Usage_Percentage /= $($Output.'RAM'.TotalVisibleMemorySize)
+                $Entry.RAM_Usage_Percentage *= 100
+
+                $Entry.Disk_Time_Percentage = (100 - ($Output.'Disk'.PercentIdleTime | Measure-Object -Average).Average)
+                $Entry.Disk_Read_MBps = $(($Output.'Disk'.DiskReadBytesPersec | Measure-Object -Average).Average / 1MB)
+                $Entry.Disk_Write_MBps = $(($Output.'Disk'.DiskWriteBytesPersec | Measure-Object -Average).Average / 1MB)
+
+                $Entry.NIC_Sent_Mbps = $((($Output.'NIC'.BytesSentPersec | Measure-Object -Average).Average / 1Mb) * 8)
+                $Entry.NIC_Received_MBps = $((($Output.'NIC'.BytesReceivedPersec | Measure-Object -Average).Average / 1Mb) * 8)
             }
             catch {
                 Write-Joblog -Message "$jobname - $($_.Exception.Message)"
                 $Script:EXIT_CODE = 1 
-            }
-            finally {
-                if ($success) {
-                    $Entry.CPU_Load_Percentage = ($Output.'CPU'.LoadPercentage | Measure-Object -Average).Average
-
-                    $Entry.RAM_Usage_Percentage = ($($Output.'RAM'.TotalVisibleMemorySize) - $($Output.'RAM'.FreePhysicalMemory))
-                    $Entry.RAM_Usage_Percentage /= $($Output.'RAM'.TotalVisibleMemorySize)
-                    $Entry.RAM_Usage_Percentage *= 100
-
-                    $Entry.Disk_Time_Percentage = (100 - ($Output.'Disk'.PercentIdleTime | Measure-Object -Average).Average)
-                    $Entry.Disk_Read_MBps = $(($Output.'Disk'.DiskReadBytesPersec | Measure-Object -Average).Average / 1MB)
-                    $Entry.Disk_Write_MBps = $(($Output.'Disk'.DiskWriteBytesPersec | Measure-Object -Average).Average / 1MB)
-
-                    $Entry.NIC_Sent_Mbps = $((($Output.'NIC'.BytesSentPersec | Measure-Object -Average).Average / 1Mb) * 8)
-                    $Entry.NIC_Received_MBps = $((($Output.'NIC'.BytesReceivedPersec | Measure-Object -Average).Average / 1Mb) * 8)
-                }
             }
             if ($DEBUG) {
                 $Entry | Format-List

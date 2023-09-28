@@ -121,25 +121,18 @@ function Get-DeviceDetails {
                 'DiskName'                  = ""
                 'StorageCapacity_GB'        = 0
             }
-            $success = $false
             try {
                 $Output = Receive-Job -Name $jobName -ErrorAction Stop
-                $success = $true
+                $Entry = Get-DeviceModel -Entry $Entry -Output $Output
+                $Entry = Get-CPUdetails -Entry $Entry -Output $Output
+                $Entry = Get-RAMdetails -Entry $Entry -Output $Output
+                $Entry = Get-DiskDetails -Entry $Entry -Output $Output
+                $Entry.'GPU_Model' = $Output.GPU.Caption | Where-Object {$_ -notlike "*Remote Display*"}
+                $Entry.'LastUpdate' = $LastUpdate
             }
             catch {
                 Write-Joblog -Message "$jobname - $($_.Exception.Message)"
                 $Script:EXIT_CODE = 1 
-            }
-            finally {
-                if ($success) {
-                    $Entry = Get-DeviceModel -Entry $Entry -Output $Output
-                    $Entry = Get-CPUdetails -Entry $Entry -Output $Output
-                    $Entry = Get-RAMdetails -Entry $Entry -Output $Output
-                    $Entry = Get-DiskDetails -Entry $Entry -Output $Output
-
-                    $Entry.'GPU_Model' = $Output.GPU.Caption | Where-Object {$_ -notlike "*Remote Display*"}
-                    $Entry.'LastUpdate' = $LastUpdate
-                }
             }
             if ($DEBUG) {
                 $Entry | Format-List

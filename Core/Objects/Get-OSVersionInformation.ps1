@@ -182,38 +182,31 @@ function Get-WindowsVersionFromJob {
                 'LastBootType'       = $null
                 'Error'              = ""
             }
-            $success = $false
+
             try {
                 $Output = Receive-Job -Name $jobName -ErrorAction Stop
-                $success = $true
+                $Entry.'CurrentlyLoggedOn' = $($Output.'WMI'.'CurrentlyLoggedOn')
+
+                $Entry.'OS_Version' = $Output.'WMI'.OS.Caption
+                $Entry.'OS_build' = "$($Output.'WMI'.OS.Version).$($Output.'Registry'.OS.UBR)"
+                $Entry.'OS_Architecture' = $($Output.'WMI'.OS.OSArchitecture).Substring(0, 6)
+                $Entry.'isLicenseActivated' = `
+                    [bool](($Output.'WMI'.License | Where-Object { $_.PartialProductKey }).LicenseStatus)
+                
+                if ($Output.'Registry'.OS.DisplayVersion.length -ge 4) {
+                    $Entry.'OS_Display_Version' = $Output.'Registry'.OS.DisplayVersion
+                }
+                else {
+                    $Entry.'OS_Display_Version' = $Output.'Registry'.OS.ReleaseID
+                }
+                $Entry.LastBootTime = $(Convert-WMIDateTime -DateTimeString $($Output.'WMI'.LastBootTime.LastBootUpTime))
+                $Entry.FastStartEnabled = [bool]$($Output.'Registry'.'FastStart'."HiberbootEnabled")
+                $Entry.LastBootType = $(Get-BootTypeFromHex -MessageString $($Output.'LastBootType') )
+                $Entry.'LastUpdate' = $LastUpdate
             }
             catch {
                 Write-Joblog -Message "$jobname - $($_.Exception.Message)"
                 $Script:EXIT_CODE = 1 
-            }
-            finally {
-                if ($success) {
-                    $Entry.'CurrentlyLoggedOn' = $($Output.'WMI'.'CurrentlyLoggedOn')
-
-                    $Entry.'OS_Version' = $Output.'WMI'.OS.Caption
-                    $Entry.'OS_build' = "$($Output.'WMI'.OS.Version).$($Output.'Registry'.OS.UBR)"
-                    $Entry.'OS_Architecture' = $($Output.'WMI'.OS.OSArchitecture).Substring(0, 6)
-                    $Entry.'isLicenseActivated' = `
-                        [bool](($Output.'WMI'.License | Where-Object { $_.PartialProductKey }).LicenseStatus)
-                    
-                    if ($Output.'Registry'.OS.DisplayVersion.length -ge 4) {
-                        $Entry.'OS_Display_Version' = $Output.'Registry'.OS.DisplayVersion
-                    }
-                    else {
-                        $Entry.'OS_Display_Version' = $Output.'Registry'.OS.ReleaseID
-                    }
-
-                    $Entry.LastBootTime = $(Convert-WMIDateTime -DateTimeString $($Output.'WMI'.LastBootTime.LastBootUpTime))
-                    $Entry.FastStartEnabled = [bool]$($Output.'Registry'.'FastStart'."HiberbootEnabled")
-                    $Entry.LastBootType = $(Get-BootTypeFromHex -MessageString $($Output.'LastBootType') )
-
-                    $Entry.'LastUpdate' = $LastUpdate
-                }
             }
             if ($DEBUG) {
                 $Entry | Format-List
@@ -226,7 +219,6 @@ function Get-WindowsVersionFromJob {
                 catch {
                     Write-Joblog -Message $_
                 }
-                
             }
             Remove-Job -Name $jobName
         }

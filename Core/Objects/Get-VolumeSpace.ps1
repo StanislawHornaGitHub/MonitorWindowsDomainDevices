@@ -95,50 +95,44 @@ function Get-VolumeDetails {
         $jobName = Get-CompletedJobName
         if ($null -ne $jobName) {
             Write-Host "Operations during timeout - $jobname"
-            $success = $false
             try {
                 $Output = Receive-Job -Name $jobName -ErrorAction Stop
-                $success = $true
+                foreach ($partition in $Output.Volumes) {
+                    $Entry = [pscustomobject] @{
+                        'PartitionLetter'      = $($partition.Caption)
+                        'DNSHostName'          = $($jobName.split(";")[1])
+                        'Label'                = $($partition.Label)
+                        'FileSystem'           = $($partition.FileSystem)
+                        'DriveCapacity_GB'     = $($partition.Capacity / 1GB)
+                        'DriveFreeSpace_GB'    = $($partition.FreeSpace / 1GB)
+                        'DriveUsed_Percentage' = $((($partition.Capacity - $partition.FreeSpace) / $partition.Capacity) * 100)
+                        'Automount'            = $partition.Automount
+                        'BootVolume'           = $partition.BootVolume
+                        'Compressed'           = $partition.Compressed
+                        'IndexingEnabled'      = $partition.IndexingEnabled
+                        'PageFilePresent'      = $partition.PageFilePresent
+                        'QuotasEnabled'        = $partition.QuotasEnabled
+                        'LastUpdate'           = $LastUpdate
+                        'Row_ID'               = "$($jobName.split(";")[1])_$($partition.DriveLetter[0])"
+                    }
+                    if ($DEBUG) {
+                        $Entry | Format-List
+                    }
+                    else {
+                        $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry  -TableName $SQL_TABLE_TO_UPDATE -sqlPrimaryKey "Row_ID"
+                        try {
+                            Invoke-SQLquery -Query $updateQuery 
+                        }
+                        catch {
+                            Write-Error $_
+                            $updateQuery
+                        }
+                    }
+                }
             }
             catch {
                 Write-Joblog -Message "$jobname - $($_.Exception.Message)"
                 $Script:EXIT_CODE = 1 
-            }
-            finally {
-                If ($success) {
-                    foreach ($partition in $Output.Volumes) {
-                        $Entry = [pscustomobject] @{
-                            'PartitionLetter' = $($partition.Caption)
-                            'DNSHostName' = $($jobName.split(";")[1])
-                            'Label' = $($partition.Label)
-                            'FileSystem' = $($partition.FileSystem)
-                            'DriveCapacity_GB' = $($partition.Capacity / 1GB)
-                            'DriveFreeSpace_GB' = $($partition.FreeSpace / 1GB)
-                            'DriveUsed_Percentage' = $((($partition.Capacity - $partition.FreeSpace) / $partition.Capacity) * 100)
-                            'Automount' = $partition.Automount
-                            'BootVolume' = $partition.BootVolume
-                            'Compressed' = $partition.Compressed
-                            'IndexingEnabled' = $partition.IndexingEnabled
-                            'PageFilePresent' = $partition.PageFilePresent
-                            'QuotasEnabled' = $partition.QuotasEnabled
-                            'LastUpdate' = $LastUpdate
-                            'Row_ID' = "$($jobName.split(";")[1])_$($partition.DriveLetter[0])"
-                        }
-                        if ($DEBUG) {
-                            $Entry | Format-List
-                        }
-                        else {
-                            $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry  -TableName $SQL_TABLE_TO_UPDATE -sqlPrimaryKey "Row_ID"
-                            try {
-                                Invoke-SQLquery -Query $updateQuery 
-                            }
-                            catch {
-                                Write-Error $_
-                                $updateQuery
-                            }
-                        }
-                    }
-                }
             }
             Remove-Job -Name $jobName
         }
