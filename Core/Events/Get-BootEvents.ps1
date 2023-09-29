@@ -129,18 +129,18 @@ function Get-BootEventsFromJob {
             $Output = $null
             try {
                 $Output = Receive-Job -Name $jobName -ErrorAction Stop
-                $Output | ForEach-Object {
-                    $_.TimeStamp = $_.TimeStamp.ToString("yyyy-MM-dd HH:mm:ss\.fff")
-                    $_.Row_ID = "$($_.TimeStamp)_$($_.DNSHostName)"
-                    $_.Row_ID = $_.Row_ID.Replace(".", "_")
-                    $_.Row_ID = $_.Row_ID.Replace(" ", "")
-                    $_.Row_ID = $_.Row_ID.Replace(":", "")
-                }
-                $Output = $Output | Select-Object -Property * -ExcludeProperty PSComputerName, RunspaceId, PSShowComputerName
             }
             catch {
                 Write-Joblog -Message "$jobname - $($_.Exception.Message)"
             }
+            $Output | ForEach-Object {
+                $_.TimeStamp = $_.TimeStamp.ToString("yyyy-MM-dd HH:mm:ss\.fff")
+                $_.Row_ID = "$($_.TimeStamp)_$($_.DNSHostName)"
+                $_.Row_ID = $_.Row_ID.Replace(".", "_")
+                $_.Row_ID = $_.Row_ID.Replace(" ", "")
+                $_.Row_ID = $_.Row_ID.Replace(":", "")
+            }
+            $Output = $Output | Select-Object -Property * -ExcludeProperty PSComputerName, RunspaceId, PSShowComputerName
             if ($DEBUG) {
                 $Output | Format-Table
             }

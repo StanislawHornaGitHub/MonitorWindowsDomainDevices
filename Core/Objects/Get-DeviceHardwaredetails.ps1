@@ -84,7 +84,7 @@ New-Variable -Name 'INPUT_HASH' -Value @{
 function Invoke-Main {
     Write-Joblog
     try {
-        Get-WMIDataAsJob -InputHash $INPUT_HASH
+        Get-WMIDataAsJob -InputHash $INPUT_HASH -PredefinedQuery ""
         Get-DeviceDetails
     }
     catch {
@@ -123,17 +123,17 @@ function Get-DeviceDetails {
             }
             try {
                 $Output = Receive-Job -Name $jobName -ErrorAction Stop
-                $Entry = Get-DeviceModel -Entry $Entry -Output $Output
-                $Entry = Get-CPUdetails -Entry $Entry -Output $Output
-                $Entry = Get-RAMdetails -Entry $Entry -Output $Output
-                $Entry = Get-DiskDetails -Entry $Entry -Output $Output
-                $Entry.'GPU_Model' = $Output.GPU.Caption | Where-Object {$_ -notlike "*Remote Display*"}
-                $Entry.'LastUpdate' = $LastUpdate
             }
             catch {
                 Write-Joblog -Message "$jobname - $($_.Exception.Message)"
                 $Script:EXIT_CODE = 1 
             }
+            $Entry = Get-DeviceModel -Entry $Entry -Output $Output
+            $Entry = Get-CPUdetails -Entry $Entry -Output $Output
+            $Entry = Get-RAMdetails -Entry $Entry -Output $Output
+            $Entry = Get-DiskDetails -Entry $Entry -Output $Output
+            $Entry.'GPU_Model' = $Output.GPU.Caption | Where-Object {$_ -notlike "*Remote Display*"}
+            $Entry.'LastUpdate' = $LastUpdate
             if ($DEBUG) {
                 $Entry | Format-List
             }

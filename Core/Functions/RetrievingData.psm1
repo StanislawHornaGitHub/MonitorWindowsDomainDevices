@@ -32,6 +32,9 @@ function Get-ComputerListToProcess {
     param(
         $PredefinedQuery = "ActiveDevices.sql"
     )
+    if($PredefinedQuery.length -le 5){
+        $PredefinedQuery = "ActiveDevices.sql"
+    }
     try {
         $Result = Invoke-SQLquery -FileQuery "$SQL_QUERIES_DIRECTORY/$PredefinedQuery"
     }
@@ -68,10 +71,11 @@ function Get-WMIDataAsJob {
     }
 #>   
     param (
-        $InputHash
+        $InputHash,
+        $PredefinedQuery = "ActiveDevices.sql"
     )
     # Get List of Available devices
-    $Computer = Get-ComputerListToProcess
+    $Computer = Get-ComputerListToProcess -PredefinedQuery $PredefinedQuery
     foreach ($C in $Computer) {
         # Start Separate job for each device
         Start-Job -Name "WMI;$($C.DNSHostName)" -ScriptBlock {

@@ -149,13 +149,13 @@ function Get-DevicePackagesFromJob {
             Write-Host "Operations during timeout - $jobname"
             try {
                 $Output = Receive-Job -Name $jobName -ErrorAction Stop
-                # Add LastUpdate date
-                $Output | Add-Member -MemberType NoteProperty -Name "LastUpdate" -Value $LastUpdate
             }
             catch {
                 Write-Joblog -Message "$jobname - $($_.Exception.Message)"
                 $Script:EXIT_CODE = 1 
             }
+                            # Add LastUpdate date
+                            $Output | Add-Member -MemberType NoteProperty -Name "LastUpdate" -Value $LastUpdate
             if ($DEBUG) {
                 #$Entry | Format-List
                 Write-Host "$jobname - $($Output.count) Packages"
