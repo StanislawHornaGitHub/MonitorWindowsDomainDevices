@@ -38,10 +38,12 @@
 
 #>
 param(
+    [bool]$RunOutOfSchedule = $false,
     [switch]$DEBUG
 )
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "SCRIPT_NAME" -Value "Get-ResourceConsumption" -Force -Scope Global -Option ReadOnly
+New-Variable -Name "QUERY_TO_RUN_OUTOF_SCHEDULE" -Value "RecentlyStarted_ActiveDevices.sql" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "TIMER" -Value $([System.Diagnostics.Stopwatch]::StartNew()) -Force -Scope Global
 
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
@@ -74,7 +76,7 @@ New-Variable -Name 'INPUT_HASH' -Value  @{
 function Invoke-Main {
     Write-Joblog
     try {
-        Get-WMIDataAsJob -InputHash $INPUT_HASH
+        Start-CollectingResourceConsumptionAsJob
         Get-RecourceConsumption
     }
     catch {
@@ -86,7 +88,13 @@ function Invoke-Main {
         exit $EXIT_CODE
     }
 }
-
+function Start-CollectingResourceConsumptionAsJob {
+    if($RunOutOfSchedule -eq $true){
+        Get-WMIDataAsJob -InputHash $INPUT_HASH -PredefinedQuery $QUERY_TO_RUN_OUTOF_SCHEDULE
+    }else{
+        Get-WMIDataAsJob -InputHash $INPUT_HASH
+    }
+}
 function Get-RecourceConsumption {
     $Time = [System.Diagnostics.Stopwatch]::StartNew()
     while ($null -ne (Get-Job) -and ($Time.ElapsedMilliseconds -le ($REMOTE_CONNECTION_TIMEOUT_SECONDS * 1000))) {

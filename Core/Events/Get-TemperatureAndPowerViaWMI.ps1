@@ -45,10 +45,12 @@
 
 #>
 param(
+    [bool]$RunOutOfSchedule = $false,
     [switch]$DEBUG
 )
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "SCRIPT_NAME" -Value "Get-TemperatureAndPowerViaWMI" -Force -Scope Global -Option ReadOnly
+New-Variable -Name "QUERY_TO_RUN_OUTOF_SCHEDULE" -Value "RecentlyStarted_WithOpenHardwareMonitor.sql" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "TIMER" -Value $([System.Diagnostics.Stopwatch]::StartNew()) -Force -Scope Global
 
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
@@ -72,7 +74,11 @@ function Invoke-Main {
     }
 }
 function Start-CollectingOHMDataAsJob {
-    $Computer = Get-ComputerListToProcess -PredefinedQuery "DevicesWithOpenHardwareMonitor.sql"
+    if($RunOutOfSchedule -eq $true){
+        $Computer = Get-ComputerListToProcess -PredefinedQuery $QUERY_TO_RUN_OUTOF_SCHEDULE
+    }else{
+        $Computer = Get-ComputerListToProcess -PredefinedQuery "DevicesWithOpenHardwareMonitor.sql"
+    }
     foreach ($C in $Computer) {
         Start-Job -Name "$($C.DNSHostName)" -ScriptBlock {
             param(
