@@ -26,6 +26,7 @@
 
     Date            Who                     What
     21-09-2023      Stanisław Horna         Old log files auto-cleanup
+    29-09-2023      Stanisław Horna         RecentlyStarted functionality added
 #>
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "SCHEDULED_TASK_NAME" -Value "Process_Coordinator" -Force -Scope Script -Option ReadOnly
@@ -77,6 +78,10 @@ function Invoke-MainLoop {
         $SleepTime = ($Script:MAX_SLEEP_INTERVAL * 1000)
         $numTriggerShiftUsed = 0
         $scriptInvokedInCurrentIteration = $false
+        # Run on recently started devices section
+        if(($NUMBER_OF_SCRIPTS_TO_RUN_OUT_OF_SCHEDULE -gt 0) -and ($(Get-NumberOfRecentylStartedDevices) -gt 0)){
+            Start-RecentlyStartedProcess -Config $Config
+        }
         # Events Section
         foreach ($E in $Config.Events.Keys) {
             $currentTime = Get-Date
@@ -240,6 +245,43 @@ function Start-DataRetrievingJob {
     Invoke-UpdateStartLastExecution -Name $Name -Type $Type
     return $true
 }
+function Start-RecentlyStartedProcess {
+    param(
+        $Config
+    )
+    Write-Log -Message "Entering RecentlyStarted section" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+    try {
+        $recentlyStartedjob = Get-Job -Name "RecentlyStarted - Main Process" -ErrorAction Stop
+    }
+    catch {
+        $recentlyStartedjob = $null
+    }
+    
+    if($null -ne $recentlyStartedjob){
+        if($recentlyStartedjob.State -ne "Running"){
+            try {
+                Receive-Job -Name "RecentlyStarted - Main Process" -ErrorAction Stop | Out-Null
+            }
+            catch {
+                Write-Log -Message "RecentlyStarted: $($_.Exception.Message)" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
+            }
+            Remove-Job -Name "RecentlyStarted - Main Process" -Force
+        }else{
+            Write-Log -Message "RecentlyStarted - Main Process last execution did not end" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+        }
+    }
+    if(($null -eq $recentlyStartedjob) -or ($recentlyStartedjob.State -ne "Running")){
+        Start-Job -Name "RecentlyStarted - Main Process" `
+        -InitializationScript { Set-Location $env:DEVICE_MONITORING_ROOT_DIRECTORY } `
+        -ScriptBlock {
+            param(
+                $Config
+            )
+                & ".\Core\Get-RecentlyStartedDevicesDetails.ps1" -ConfigData $Config
+        } -ArgumentList $Config | Out-Null
+        Write-Log -Message "RecentlyStarted - Main Process job started" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+    }
+}
 function Invoke-UpdateStartLastExecution {
     param(
         $Name,
@@ -256,6 +298,7 @@ function Invoke-UpdateStartLastExecution {
     Invoke-SQLquery -Query $Query -SQLDBName $SQL_LOG_DATABASE
 }
 function Get-ConfigurationDetails {
+    Write-Log -Message "Reading config file" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
     # Read Config.json file
     $Config = Get-Content -Path $CONFIG_FILEPATH | ConvertFrom-Json
     # Place the Command statuses from file to the variables
@@ -263,7 +306,7 @@ function Get-ConfigurationDetails {
         -Value $($Config.Commands.Stop_Process_Coordinator) -Force -Scope Global
     New-Variable -Name "STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER" `
         -Value $($Config.Commands.Stop_Process_and_Disable_Task_Scheduler) -Force -Scope Global
-
+    New-Variable -Name "NUMBER_OF_SCRIPTS_TO_RUN_OUT_OF_SCHEDULE" -Value 0 -Force -Scope Global
     $refreshIntervalsArray = New-Object System.Collections.ArrayList
     # Go through imported Config.json and create a Hashtable to work in main loop
     $hash = @{}
@@ -282,6 +325,7 @@ function Get-ConfigurationDetails {
         $defaultDate = (Get-Date).AddDays(-360)
         # Loop through the scripts in the current branch
         foreach ($property in $Config.($Type.Name).PSObject.Properties) {
+            $NUMBER_OF_SCRIPTS_TO_RUN_OUT_OF_SCHEDULE += $property.Value.RunOnceDeviceBecomeActive
             # Skip the itaration if the script refresh interval is set to 0,
             # those will be skipped from periodical triggering
             if ($property.Value.Refresh_Interval_in_seconds -le 0) {
@@ -477,6 +521,17 @@ function Test-RootContents {
 function Get-LastExecution {
     # Get all data gathered in Last Execution SQL table
     return (Invoke-SQLquery -FileQuery "$SQL_QUERIES_DIRECTORY/LastExecution.sql"  -SQLDBName $SQL_LOG_DATABASE)
+}
+function Get-NumberOfRecentylStartedDevices {
+    $Devices = Invoke-SQLquery -FileQuery "$SQL_QUERIES_DIRECTORY\ComputersToProcess\RecentlyStarted_ActiveDevices.sql"
+    if(($null -ne $Devices)){
+        if(($null -ne $Devices.count)){
+            return $($Devices.count)
+        }else{
+            return 1
+        }
+    }
+    return 0
 }
 function Remove-OldJobs {
     # To avoid errors remove remaining jobs
