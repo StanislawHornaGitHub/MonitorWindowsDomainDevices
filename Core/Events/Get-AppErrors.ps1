@@ -109,21 +109,24 @@ function Get-AppErrorEventsFromJob {
                 Write-Joblog -Message "$jobname - $($_.Exception.Message)"
             }
             $Output | ForEach-Object {
-                $_.TimeCreated = $_.TimeCreated.ToString("yyyy-MM-dd HH:mm:ss\.fff")
-                $_.Row_ID = "$($_.TimeCreated)_$($_.id)_$($_.DNSHostName.Split(".")[0])"
-                $_.Row_ID = $_.Row_ID.Replace(".", "_")
-                $_.Row_ID = $_.Row_ID.Replace(" ", "")
-                $_.Row_ID = $_.Row_ID.Replace(":", "")
-
-                $_.Message = $_.Message.Replace("'","`"")
+                try {
+                    $_.TimeCreated = $_.TimeCreated.ToString("yyyy-MM-dd HH:mm:ss\.fff")
+                    $_.Row_ID = "$($_.TimeCreated)_$($_.id)_$($_.DNSHostName.Split(".")[0])"
+                    $_.Row_ID = $_.Row_ID.Replace(".", "_")
+                    $_.Row_ID = $_.Row_ID.Replace(" ", "")
+                    $_.Row_ID = $_.Row_ID.Replace(":", "")
+                    $_.Message = $_.Message.Replace("'", "`"")
+                }
+                catch {}
             }
             $Output = $Output | Select-Object -Property * -ExcludeProperty PSComputerName, RunspaceId, PSShowComputerName
+            
             if ($DEBUG) {
                 $Output | Format-List
             }
             else {
                 foreach ($Entry in $Output) {
-                    $insertQuery = Get-SQLifDataNotExistInsertQuery -Entry $Entry -TableName $SQL_TABLE_TO_UPDATE -sqlPrimaryKey "Row_ID"
+                        $insertQuery = Get-SQLifDataNotExistInsertQuery -Entry $Entry -TableName $SQL_TABLE_TO_UPDATE -sqlPrimaryKey "Row_ID"
                     try {
                         Invoke-SQLquery -Query $insertQuery 
                     }
