@@ -115,7 +115,7 @@ function Get-AppErrorEventsFromJob {
                     $_.Row_ID = $_.Row_ID.Replace(".", "_")
                     $_.Row_ID = $_.Row_ID.Replace(" ", "")
                     $_.Row_ID = $_.Row_ID.Replace(":", "")
-                    $_.Message = $_.Message.Replace("'", "`"")
+                    $_.Message = $_.Message.Replace("'", "''")
                 }
                 catch {}
             }
