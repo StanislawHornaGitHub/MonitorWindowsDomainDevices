@@ -81,7 +81,11 @@ function Get-SQLdataUpdateQuery {
         $ColumnsToCompare = $Entry.PSObject.Properties.Name | Where-Object { $_ -notin $COLUMNS_EXCLUDED_FROM_COMPARISON }
         $ColumnsToCompare = $ColumnsToCompare -join ", "
         # Load Object Data SQL Query template
-        $SQL_Query_Template = Get-Content -Path $SQL_WRITE_TABLE_DATA_WITH_CHANGE_LOG_TEMPLATE -Raw
+        if($TableName -eq "Inventory"){
+            $SQL_Query_Template = Get-Content -Path $SQL_UPDATE_INVENTORY_TABLE -Raw
+        }else{
+            $SQL_Query_Template = Get-Content -Path $SQL_WRITE_TABLE_DATA_WITH_CHANGE_LOG_TEMPLATE -Raw
+        }
         # Put columns to compare to the template
         $SQL_Query_Template = $SQL_Query_Template.Replace("COLUMNS_TO_COMPARE_DURING_UPDATE_VARIABLE", $ColumnsToCompare)
         # Put INSERT CHANGE LOG sub query to the template

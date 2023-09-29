@@ -46,10 +46,10 @@ New-Variable -Name "SQL_LOG_TABLE_PREFIX" -Value "ChangeLog_" -Force -Scope Glob
 New-Variable -Name "SQL_INVENTORY_TABLE_NAME" -Value "Inventory" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "SQL_WRITE_TABLE_DATA_TEMPLATE" -Value "$SQL_QUERIES_DIRECTORY/UpdateDataTableTemplate.sql" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "SQL_WRITE_TABLE_DATA_WITH_CHANGE_LOG_TEMPLATE" -Value "$SQL_QUERIES_DIRECTORY/UpdateDataTableTemplateWithChangeLog.sql" -Force -Scope Global -Option ReadOnly
+New-Variable -Name "SQL_UPDATE_INVENTORY_TABLE" -Value "$SQL_QUERIES_DIRECTORY/UpdateInventoryTable.sql" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "SQL_INSERT_DATA_IF_NOT_EXIST_TEMPLATE" -Value "$SQL_QUERIES_DIRECTORY/InsertDataIfnotExist.sql" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "SQL_ACTIVE_DEVICES_QUERY" -Value "$SQL_QUERIES_DIRECTORY/ActiveDevices.sql" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "SQL_OBJECT_TABLES_WITHOUT_CHANGE_LOG" -Value @(
-    "Inventory",
     "LastExecution",
     "Storage"
 ) -Force -Scope Global -Option ReadOnly

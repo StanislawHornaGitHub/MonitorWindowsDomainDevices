@@ -152,6 +152,9 @@ function Invoke-SQLUpdate {
     else {
         $updateQuery = Get-SQLdataUpdateQuery -Entry $Entry -TableName "Inventory"
         Invoke-SQLquery -Query $updateQuery
+        If($Entry.DNSHostname -eq "Service-i7-3770.Horna.local"){
+            $updateQuery
+        }
     }
 }
 function Invoke-Ping {
