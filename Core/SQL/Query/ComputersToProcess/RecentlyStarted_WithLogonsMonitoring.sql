@@ -1,4 +1,5 @@
 DECLARE @DeviceIsActive AS BIT = 1
+DECLARE @LogonsMonitoring AS BIT = 1
 DECLARE @RecentlyStarted AS BIT = 1
 
 SELECT
@@ -8,5 +9,5 @@ SELECT
 FROM Inventory
 WHERE isActive=@DeviceIsActive AND 
       RecentlyStarted = @RecentlyStarted AND
-      IsHardwareMonitorDeployed IS NULL
+      MonitorLogons = @LogonsMonitoring
     
