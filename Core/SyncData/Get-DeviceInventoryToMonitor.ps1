@@ -40,7 +40,8 @@
 
     Date            Who                     What
     21-09-2023      Stanisław Horna         Filtering out devices which are not running Windows OS
-
+    29-09-2023      Stanisław Horna         RecentlyStarted column support added
+    30-09-2023      Stanisław Horna         More accurate number of processed devices in Joblog
 #>
 Param(
     [switch]$DEBUG
@@ -65,7 +66,7 @@ function Invoke-Main {
         $EXIT_CODE = 1
     }
     finally {
-        Write-Joblog -Completed -EXIT_CODE $EXIT_CODE
+        Write-Joblog -Completed -ProcessedDevices $PROCESSED_DEVICES -EXIT_CODE $EXIT_CODE
         exit $EXIT_CODE
     }
 }
@@ -85,6 +86,7 @@ function Get-ComputerList {
         # Filter the list to get only enable accounts
         $Computer = $Computer | Where-Object { $_.Enabled -eq $true }
     }
+    New-Variable -Name "PROCESSED_DEVICES" -Value $($Computer.count) -Force -Scope Script -Option ReadOnly
     $Script:Computer = $Computer
 }
 

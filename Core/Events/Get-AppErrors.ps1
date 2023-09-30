@@ -35,7 +35,8 @@
     ChangeLog:
 
     Date            Who                     What
-
+    29-09-2023      Stanisław Horna         Support for RunOutOfSchedule mechanizm added
+    30-09-2023      Stanisław Horna         More accurate number of processed devices in Joblog
 #>
 param(
     [bool]$RunOutOfSchedule = $false,
@@ -43,6 +44,7 @@ param(
 )
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "SCRIPT_NAME" -Value "Get-AppErrors" -Force -Scope Global -Option ReadOnly
+New-Variable -Name "QUERY_TO_RUN_WITH_SCHEDULE" -Value "ActiveDevicesWithLogonsMonitoring.sql" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "QUERY_TO_RUN_OUTOF_SCHEDULE" -Value "RecentlyStarted_WithLogonsMonitoring.sql" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "TIMER" -Value $([System.Diagnostics.Stopwatch]::StartNew()) -Force -Scope Global
 
@@ -63,16 +65,14 @@ function Invoke-Main {
         $EXIT_CODE = 1
     }
     finally {
-        Write-Joblog -Completed -EXIT_CODE $EXIT_CODE
+        Write-Joblog -Completed -ProcessedDevices $PROCESSED_DEVICES -EXIT_CODE $EXIT_CODE
         exit $EXIT_CODE
     }
 }
 function Start-CollectingAppErrorEventsAsJob {
-    if($RunOutOfSchedule -eq $true){
-        $Computer = Get-ComputerListToProcess -PredefinedQuery $QUERY_TO_RUN_OUTOF_SCHEDULE
-    }else {
-        $Computer = Get-ComputerListToProcess -PredefinedQuery "ActiveDevicesWithLogonsMonitoring.sql"
-    }
+    $Computer = Get-DevicesList -RunOutOfSchedule $RunOutOfSchedule `
+        -QueryWithSchedule $QUERY_TO_RUN_WITH_SCHEDULE `
+        -QueryOutOfSchedule $QUERY_TO_RUN_OUTOF_SCHEDULE
     foreach ($C in $Computer) {
         Start-Job -Name "$($C.DNSHostName)" -ScriptBlock {
             param(

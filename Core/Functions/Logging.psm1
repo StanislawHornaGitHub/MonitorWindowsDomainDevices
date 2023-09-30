@@ -30,12 +30,13 @@
     ChangeLog:
 
     Date            Who                     What
-
+    30-09-2023      Stanisław Horna         Additional ProcessedDevices Param for Write-Joblog
 #>
 function Write-Joblog {
     param(
         $Message,
         [switch]$Completed,
+        $ProcessedDevices = $($(Get-ComputerListToProcess).count),
         $EXIT_CODE
     )
     if ($Message) {
@@ -46,7 +47,7 @@ function Write-Joblog {
             $LOG_OBJECT.End_time = $((Get-Date).ToString("yyyy-MM-dd HH:mm:ss"))
             $LOG_OBJECT.Duration = $($TIMER.Elapsed.ToString("hh\:mm\:ss\.fff"))
             $LOG_OBJECT.Exit_code = $EXIT_CODE
-            $LOG_OBJECT.Processed_devices = $(Get-ComputerListToProcess).count
+            $LOG_OBJECT.Processed_devices = $ProcessedDevices
             
             $Success = $false
             while ($Success -eq $false) {

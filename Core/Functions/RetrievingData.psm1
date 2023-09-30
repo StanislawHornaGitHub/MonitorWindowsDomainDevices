@@ -21,7 +21,7 @@
     ChangeLog:
 
     Date            Who                     What
-
+    29-09-2023      Stanisław Horna         Get-WMIDataAsJob new parameter added PredefinedQuery
 #>
 function Get-ComputerListToProcess {
     <#
@@ -76,6 +76,14 @@ function Get-WMIDataAsJob {
     )
     # Get List of Available devices
     $Computer = Get-ComputerListToProcess -PredefinedQuery $PredefinedQuery
+    if($null -eq $Computer){
+        return
+    }
+    if($null -eq $Computer.count){
+        New-Variable -Name "PROCESSED_DEVICES" -Value 1 -Force -Scope Global -Option ReadOnly
+    }else{
+        New-Variable -Name "PROCESSED_DEVICES" -Value $($Computer.count) -Force -Scope Global -Option ReadOnly
+    }
     foreach ($C in $Computer) {
         # Start Separate job for each device
         Start-Job -Name "WMI;$($C.DNSHostName)" -ScriptBlock {
