@@ -56,7 +56,7 @@ New-Variable -Name "TIMER" -Value $([System.Diagnostics.Stopwatch]::StartNew()) 
 
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 New-Variable -Name "SQL_TABLE_TO_UPDATE" -Value "Event_Logons" -Force -Scope Script -Option ReadOnly
-New-Variable -Name "PROCESSED_DEVICES" -Value 0 -Force -Scope Script -Option ReadOnly
+
 
 New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 90 -Force -Scope Script -Option ReadOnly
 New-Variable -Name "FILTER_X_PATH" -Value "
