@@ -24,7 +24,8 @@
     Date            Who                     What
 #>
 param(
-    $ConfigData
+    $ConfigData,
+    $NumberOfRecentlyStartedDevices
 )
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "SCRIPT_NAME" -Value "Get-RecentlyStartedDeviceDetails" -Force -Scope Global -Option ReadOnly
@@ -47,7 +48,7 @@ function Invoke-Main {
         $EXIT_CODE = 1
     }
     finally {
-        Write-Joblog -Completed -EXIT_CODE $EXIT_CODE
+        Write-Joblog -Completed -ProcessedDevices $NumberOfRecentlyStartedDevices -EXIT_CODE $EXIT_CODE
         exit $EXIT_CODE
     }
 }

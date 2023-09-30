@@ -79,8 +79,9 @@ function Invoke-MainLoop {
         $numTriggerShiftUsed = 0
         $scriptInvokedInCurrentIteration = $false
         # Run on recently started devices section
-        if(($NUMBER_OF_SCRIPTS_TO_RUN_OUT_OF_SCHEDULE -gt 0) -and ($(Get-NumberOfRecentylStartedDevices) -gt 0)){
-            Start-RecentlyStartedProcess -Config $Config
+        $NumberOfRecentlyStartedDevices = $(Get-NumberOfRecentylStartedDevices)
+        if (($NUMBER_OF_SCRIPTS_TO_RUN_OUT_OF_SCHEDULE -gt 0) -and ($NumberOfRecentlyStartedDevices -gt 0)) {
+            Start-RecentlyStartedProcess -Config $Config -NumberOfRecentlyStartedDevices $NumberOfRecentlyStartedDevices
         }
         # Events Section
         foreach ($E in $Config.Events.Keys) {
@@ -247,7 +248,8 @@ function Start-DataRetrievingJob {
 }
 function Start-RecentlyStartedProcess {
     param(
-        $Config
+        $Config,
+        $NumberOfRecentlyStartedDevices
     )
     Write-Log -Message "Entering RecentlyStarted section" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
     try {
@@ -257,8 +259,8 @@ function Start-RecentlyStartedProcess {
         $recentlyStartedjob = $null
     }
     
-    if($null -ne $recentlyStartedjob){
-        if($recentlyStartedjob.State -ne "Running"){
+    if ($null -ne $recentlyStartedjob) {
+        if ($recentlyStartedjob.State -ne "Running") {
             try {
                 Receive-Job -Name "RecentlyStarted - Main Process" -ErrorAction Stop | Out-Null
             }
@@ -266,19 +268,21 @@ function Start-RecentlyStartedProcess {
                 Write-Log -Message "RecentlyStarted: $($_.Exception.Message)" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
             }
             Remove-Job -Name "RecentlyStarted - Main Process" -Force
-        }else{
+        }
+        else {
             Write-Log -Message "RecentlyStarted - Main Process last execution did not end" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
         }
     }
-    if(($null -eq $recentlyStartedjob) -or ($recentlyStartedjob.State -ne "Running")){
+    if (($null -eq $recentlyStartedjob) -or ($recentlyStartedjob.State -ne "Running")) {
         Start-Job -Name "RecentlyStarted - Main Process" `
-        -InitializationScript { Set-Location $env:DEVICE_MONITORING_ROOT_DIRECTORY } `
-        -ScriptBlock {
+            -InitializationScript { Set-Location $env:DEVICE_MONITORING_ROOT_DIRECTORY } `
+            -ScriptBlock {
             param(
-                $Config
+                $Config,
+                $NumberOfRecentlyStartedDevices
             )
-                & ".\Core\Get-RecentlyStartedDevicesDetails.ps1" -ConfigData $Config
-        } -ArgumentList $Config | Out-Null
+            & ".\Core\Get-RecentlyStartedDevicesDetails.ps1" -ConfigData $Config -NumberOfRecentlyStartedDevices $NumberOfRecentlyStartedDevices
+        } -ArgumentList $Config, $NumberOfRecentlyStartedDevices | Out-Null
         Write-Log -Message "RecentlyStarted - Main Process job started" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
     }
 }
@@ -306,11 +310,11 @@ function Get-ConfigurationDetails {
         -Value $($Config.Commands.Stop_Process_Coordinator) -Force -Scope Global
     New-Variable -Name "STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER" `
         -Value $($Config.Commands.Stop_Process_and_Disable_Task_Scheduler) -Force -Scope Global
-    New-Variable -Name "NUMBER_OF_SCRIPTS_TO_RUN_OUT_OF_SCHEDULE" -Value 0 -Force -Scope Global
     $refreshIntervalsArray = New-Object System.Collections.ArrayList
     # Go through imported Config.json and create a Hashtable to work in main loop
     $hash = @{}
     $skippedScripts = @()
+    $ScriptsOutOfSchedule = 0
     # Loop through the root branches in file
     foreach ($Type in $Config.PSObject.Properties) {
         # Skip the iteration if branch is called Modules or Commands,
@@ -325,7 +329,7 @@ function Get-ConfigurationDetails {
         $defaultDate = (Get-Date).AddDays(-360)
         # Loop through the scripts in the current branch
         foreach ($property in $Config.($Type.Name).PSObject.Properties) {
-            $NUMBER_OF_SCRIPTS_TO_RUN_OUT_OF_SCHEDULE += $property.Value.RunOnceDeviceBecomeActive
+            $ScriptsOutOfSchedule += $property.Value.RunOnceDeviceBecomeActive
             # Skip the itaration if the script refresh interval is set to 0,
             # those will be skipped from periodical triggering
             if ($property.Value.Refresh_Interval_in_seconds -le 0) {
@@ -373,6 +377,7 @@ function Get-ConfigurationDetails {
     New-Variable -Name "SHIFT_SCRIPT_RUN" -Value $($Script:MAX_SLEEP_INTERVAL / ($Count + 1)) `
         -Force -Scope Script
     New-Variable -Name "NUMBER_OF_TIMES_SHIFT_SCRIPT_RUN_CAN_BE_USED" -Value $($Count) -Force -Scope Script
+    New-Variable -Name "NUMBER_OF_SCRIPTS_TO_RUN_OUT_OF_SCHEDULE" -Value $($ScriptsOutOfSchedule) -Force -Scope Global
     # Return built hash
     return $hash
 }
@@ -422,27 +427,33 @@ function Stop-AllJobs {
         $Name = (Get-Job | Where-Object { ($_.State -ne "Running") } | Select-Object -First 1).Name
         # If there is no such job continue to the next iteration
         if ($null -ne $Name) {
-            # Create entry to push to the SQL statuses
-            $Entry = [PSCustomObject]@{
-                'Name'           = $Name
-                'Last_Exit_Code' = $null
-                'Errors'         = $null
+            if ($Name -eq "RecentlyStarted - Main Process") {
+                Remove-Job -Name $Name -Force
+                continue
             }
-            # Get job output
-            try {
-                Receive-Job -Name $Name -ErrorAction Stop | Out-Null
-                $Entry.'Last_Exit_Code' = 0
+            else {
+                # Create entry to push to the SQL statuses
+                $Entry = [PSCustomObject]@{
+                    'Name'           = $Name
+                    'Last_Exit_Code' = $null
+                    'Errors'         = $null
+                }
+                # Get job output
+                try {
+                    Receive-Job -Name $Name -ErrorAction Stop | Out-Null
+                    $Entry.'Last_Exit_Code' = 0
+                }
+                catch {
+                    Write-Log -Message "$Name - $_" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
+                    $Entry.'Errors' = $_
+                    $Entry.'Last_Exit_Code' = 1
+                }
+                Remove-Job -Name $Name -Force
+                # Write Log and update information in SQL
+                Write-Log -Message "Job $Name removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+                $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
+                Invoke-SQLquery -Query $Query -SQLDBName $SQL_LOG_DATABASE
             }
-            catch {
-                Write-Log -Message "$Name - $_" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
-                $Entry.'Errors' = $_
-                $Entry.'Last_Exit_Code' = 1
-            }
-            Remove-Job -Name $Name -Force
-            # Write Log and update information in SQL
-            Write-Log -Message "Job $Name removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
-            $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
-            Invoke-SQLquery -Query $Query -SQLDBName $SQL_LOG_DATABASE
         }
     }
     Write-Log -Message "Wait loop exited" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
@@ -524,10 +535,11 @@ function Get-LastExecution {
 }
 function Get-NumberOfRecentylStartedDevices {
     $Devices = Invoke-SQLquery -FileQuery "$SQL_QUERIES_DIRECTORY\ComputersToProcess\RecentlyStarted_ActiveDevices.sql"
-    if(($null -ne $Devices)){
-        if(($null -ne $Devices.count)){
+    if (($null -ne $Devices)) {
+        if (($null -ne $Devices.count)) {
             return $($Devices.count)
-        }else{
+        }
+        else {
             return 1
         }
     }
