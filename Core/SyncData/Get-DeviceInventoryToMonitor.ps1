@@ -80,7 +80,7 @@ function Get-ComputerList {
         $Computer = $Computer | Where-Object { $_.DNSHostName -notin $DEVICES_TO_EXCLUDE_FROM_MONITORING }
     }
     catch {
-        throw $_.Exception.Message
+        throw "Get-ComputerList: $($_.Exception.Message)"
     }
     finally {
         # Filter the list to get only enable accounts
@@ -185,7 +185,7 @@ function Test-PSRemotingServices {
         (Test-WSMan -ComputerName $ComputerName -ErrorAction Stop) | Out-Null
     }   
     catch {
-        throw $_.Exception.Message
+        throw "Test-PSRemotingServices: $($_.Exception.Message)"
     }
     try {
         # Invoke command remotely to verify if PS Remoting is active
@@ -194,7 +194,7 @@ function Test-PSRemotingServices {
         } -AsJob -JobName $ComputerName | Out-Null
     }
     catch {
-        throw $_.Exception.Message
+        throw "Test-PSRemotingServices: $($_.Exception.Message)"
     }
     # Wait for PS Remoting response with timeout to speed up processing
     Wait-Job -Name $ComputerName -Timeout $TEST_PS_REMOTING_TIMEOUT | Out-Null
@@ -203,7 +203,7 @@ function Test-PSRemotingServices {
         $Rjob = Receive-Job -Name $ComputerName -ErrorAction Stop
     }
     catch {
-        throw $_.Exception.Message
+        throw "Test-PSRemotingServices: $($_.Exception.Message)"
     }
     Remove-Job -Name $ComputerName -Force | Out-Null
     # Get services which are not running
@@ -218,7 +218,7 @@ function Test-PSRemotingServices {
         foreach ($s in $notRunningServices) {
             $Message += "$($s.Name) $($s.Status)`n"
         }
-        throw $Message
+        throw "Test-PSRemotingServices: $Message"
     }
     return $false
 }

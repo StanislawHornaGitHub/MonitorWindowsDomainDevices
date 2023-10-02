@@ -39,10 +39,10 @@ function Get-ComputerListToProcess {
         $Result = Invoke-SQLquery -FileQuery "$SQL_QUERIES_DIRECTORY/ComputersToProcess/$PredefinedQuery"
     }
     catch {
-        throw $_.Exception.Message
+        throw "Get-ComputerListToProcess: $($_.Exception.Message)"
     }
     if ($null -eq $Result) {
-        throw "There are no devices to process."
+        throw "Get-ComputerListToProcess: There are no devices to process."
     }
     return $Result
 }
@@ -108,7 +108,7 @@ function Get-WMIDataAsJob {
                         )
                     }
                     catch {
-                        throw $_.Exception.Message
+                        throw "Get-WMIDataAsJob: $($_.Exception.Message)"
                     }
         
                 }
@@ -158,7 +158,7 @@ function Get-RegistryDataAsJob {
                                 ).GetValue($P))
                         }
                         catch {
-                            throw $_.Exception.Message
+                            throw "Get-RegistryDataAsJob: $($_.Exception.Message)"
                         }
                     }
                 }

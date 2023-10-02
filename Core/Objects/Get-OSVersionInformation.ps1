@@ -131,7 +131,7 @@ function Start-CollectingOSVersionAsJob {
                                 ).GetValue($P))
                         }
                         catch {
-                            throw $_.Exception.Message
+                            throw "Start-CollectingOSVersionAsJob: $($_.Exception.Message)"
                         }
                     }
                 }
@@ -144,7 +144,7 @@ function Start-CollectingOSVersionAsJob {
                         )
                     }
                     catch {
-                        throw $_.Exception.Message
+                        throw "Start-CollectingOSVersionAsJob: $($_.Exception.Message)"
                     }
                 }
                 try {

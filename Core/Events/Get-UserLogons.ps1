@@ -111,7 +111,7 @@ function Start-CollectingLogonEventsAsJob {
                     $Events = $Events  | Sort-Object { $_.properties[12].value } -Unique
                 }
                 catch {
-                    throw $_.Exception.Message
+                    throw "Start-CollectingLogonEventsAsJob: $($_.Exception.Message)"
                 }
                 $Output = New-Object System.Collections.ArrayList
                 foreach ($E in $Events) {

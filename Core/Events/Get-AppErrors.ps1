@@ -91,7 +91,7 @@ function Start-CollectingAppErrorEventsAsJob {
                         Select-Object TimeCreated, ID, Level, ProviderName, Message
                 }
                 catch {
-                    throw $_.Exception.Message
+                    throw "Start-CollectingAppErrorEventsAsJob: $($_.Exception.Message)"
                 }
                 $Events | Add-Member -MemberType NoteProperty -Name "DNSHostName" -Value $ComputerName
                 $Events | Add-Member -MemberType NoteProperty -Name "Row_ID" -Value ""

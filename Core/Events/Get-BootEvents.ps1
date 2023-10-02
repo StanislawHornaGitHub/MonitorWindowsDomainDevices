@@ -108,7 +108,7 @@ function Start-CollectingBootEventsAsJob {
                         -ErrorAction Stop
                 }
                 catch {
-                    throw $_.Exception.Message
+                    throw "Start-CollectingBootEventsAsJob: $($_.Exception.Message)"
                 }
                 $Output = New-Object System.Collections.ArrayList
                 foreach ($E in $Events) {
