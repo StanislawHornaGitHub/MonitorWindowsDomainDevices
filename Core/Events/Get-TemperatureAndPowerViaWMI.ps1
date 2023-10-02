@@ -51,7 +51,7 @@ param(
 )
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "SCRIPT_NAME" -Value "Get-TemperatureAndPowerViaWMI" -Force -Scope Global -Option ReadOnly
-New-Variable -Name "QUERY_TO_RUN_WITH_SCHEDULE" -Value "DevicesWithOpenHardwareMonitor.sql" -Force -Scope Global -Option ReadOnly
+New-Variable -Name "QUERY_TO_RUN_WITH_SCHEDULE" -Value "ActiveDevicesWithOpenHardwareMonitor.sql" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "QUERY_TO_RUN_OUTOF_SCHEDULE" -Value "RecentlyStarted_WithOpenHardwareMonitor.sql" -Force -Scope Global -Option ReadOnly
 
 New-Variable -Name "TIMER" -Value $([System.Diagnostics.Stopwatch]::StartNew()) -Force -Scope Global
