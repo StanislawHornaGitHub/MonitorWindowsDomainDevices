@@ -201,7 +201,7 @@ function Start-CollectingVMpropertiesAsJob {
                 $Output.Object_Hyper_V_VMs | Add-Member -MemberType NoteProperty -Name DNSHostName -Value $ComputerName
                 $Output.Object_Hyper_V_VMs | ForEach-Object {
                     # Convert Operational status ID number to string
-                    $_.OperationalStatus = $_.OperationalStatus.GetValue(0)
+                    $_.OperationalStatus = $_.OperationalStatus.GetValue(0).ToString()
                     $_.MemoryAssigned_GB = $_.MemoryAssigned / 1GB
                     $_.AutomaticStartAction = $_.AutomaticStartAction.ToString()
                     $_.AutomaticStopAction = $_.AutomaticStopAction.ToString()
