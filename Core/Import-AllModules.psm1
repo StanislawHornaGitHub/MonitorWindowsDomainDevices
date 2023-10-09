@@ -72,6 +72,7 @@ New-Variable -Name "DEPLOYMENT_SERVER_SHARE" -Value "\\Server-Automation\Deploym
 New-Variable -Name "LOCAL_MONITORING_COMPONENTS_PATH" -Value "C:\Program Files\Monitoring_Windows_Domain_Devices" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "OPEN_HARDWARE_MONITOR_PATH" -Value "$LOCAL_MONITORING_COMPONENTS_PATH\OpenHardwareMonitorReport" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "OPEN_HARDWARE_MONITOR_EXE" -Value "$LOCAL_MONITORING_COMPONENTS_PATH\OpenHardwareMonitor\OpenHardwareMonitor.exe" -Force -Scope Global -Option ReadOnly
+New-Variable -Name "OOKLA_SPEEDTEST_EXE" -Value "$LOCAL_MONITORING_COMPONENTS_PATH\OOKLA_Speedtest\speedtest.exe" -Force -Scope Global -Option ReadOnly
 
 ###########################
 ## Env Variables Section ##
