@@ -16,11 +16,13 @@
     ChangeLog:
 
     Date            Who                     What
-    
+
 #>
 ########################
 ## Inventory SECTION ##
 ########################
+New-Variable -Name "TEST_ICMP_DEVICE_ACTIVE" -Value "./Core/SyncData/Test-ActiveDevices.ps1" -Force -Scope Global -Option ReadOnly
+New-Variable -Name "INVOKE_SELECTED_SCRIPTS_ON_RECENLTY_STARTED_DEVICES" -Value ".\Core\SyncData\Get-RecentlyStartedDevicesDetails.ps1" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "DEVICES_TO_EXCLUDE_FROM_MONITORING" -Value @(
     "mac-mini.horna.local",
     "truenas.horna.local"
