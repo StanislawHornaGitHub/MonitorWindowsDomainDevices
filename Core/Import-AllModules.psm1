@@ -31,14 +31,14 @@
 #############################
 Import-Module .\Core\Functions\RetrievingData.psm1
 Import-Module .\Core\Functions\Logging.psm1
-Import-Module .\Core\SQL\Module\SQL.psm1
+Import-Module .\Core\Functions\SQL.psm1
 Import-Module .\Core\Functions\Utility.psm1
 
 #############################
 ## Import Variable Modules ##
 #############################
-Import-Module .\Core\Variables\VariablesSQL.psm1
-Import-Module .\Core\Variables\VariablesDeployment.psm1
+Import-Module .\Core\Variables\VariableSQL.psm1
+Import-Module .\Core\Variables\VariableDeployment.psm1
 Import-Module .\Core\Variables\VariableEnvironment.psm1
 Import-Module .\Core\Variables\VariableLog.psm1
 Import-Module .\Core\Variables\VariableInventory.psm1
