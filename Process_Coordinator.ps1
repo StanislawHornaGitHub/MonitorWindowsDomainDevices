@@ -503,6 +503,7 @@ function Invoke-LogFolderStructure {
     Write-Log -Message "Logs structure completed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
 }
 function Test-RootContents {
+    Write-Log -Message "Component compliance started" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
     # Read Config.json file
     $Config = Get-Content -Path $CONFIG_FILEPATH | ConvertFrom-Json
     $Status = $true
