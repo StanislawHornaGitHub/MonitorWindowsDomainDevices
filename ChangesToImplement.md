@@ -1,5 +1,17 @@
 # Items to develop
 ## Done:
+    From changes section:
+        1. Done
+        2.
+        3. Done
+        4. Done
+    
+    From Improvements section
+        1.
+        2.
+        3.
+        4.
+        5.
 
 
 ## Changes:
