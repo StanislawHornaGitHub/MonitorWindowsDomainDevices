@@ -211,9 +211,111 @@ function Remove-OldLogFiles {
     }
     Write-Log -Message "Logs Cleanup completed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
 }
+function Get-ConfigurationDetails {
+    Write-Log -Message "Reading config file" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+    # Read Config.json file
+    $Config = Get-Content -Path $CONFIG_FILEPATH | ConvertFrom-Json
+    # Place the Command statuses from file to the variables
+    New-Variable -Name "STOP_PROCESS_COORDINATOR" `
+        -Value $($Config.Commands.Stop_Process_Coordinator) -Force -Scope Global
+    New-Variable -Name "STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER" `
+        -Value $($Config.Commands.Stop_Process_and_Disable_Task_Scheduler) -Force -Scope Global
+    $refreshIntervalsArray = New-Object System.Collections.ArrayList
+    # Go through imported Config.json and create a Hashtable to work in main loop
+    $hash = @{}
+    $skippedScripts = @()
+    $ScriptsOutOfSchedule = 0
+    # Loop through the root branches in file
+    foreach ($Type in $Config.PSObject.Properties) {
+        # Skip the iteration if branch is called Modules or Commands,
+        # because there are no scripts which should be triggered periodically
+        if ((($Type.Name) -eq "Modules") -or (($Type.Name) -eq "Commands")) {
+            continue
+        }
+        # Add key for current branch
+        $hash[$Type.Name] = @{}
+        # Set the default last execution date 
+        # (in case if there are no information in SQL about last execution)
+        $defaultLastRefreshDate = (Get-Date).AddDays(-360)
+        $defaultNextRunDate = (Get-Date).AddDays(-359)
+        # Loop through the scripts in the current branch
+        foreach ($property in $Config.($Type.Name).PSObject.Properties) {
+            $ScriptsOutOfSchedule += $property.Value.RunOnceDeviceBecomeActive
+            # Skip the itaration if the script refresh interval is set to 0,
+            # those will be skipped from periodical triggering
+            if ($property.Value.Refresh_Interval_in_seconds -le 0) {
+                $skippedScripts += $($property.Name)
+                continue
+            }
+            # Find the lowest refresh interval in seconds
+            if ($property.Value.Refresh_Interval_in_seconds -le $MAX_SLEEP_INTERVAL) {
+                $Script:MAX_SLEEP_INTERVAL = $property.Value.Refresh_Interval_in_seconds
+                $refreshIntervalsArray.Add($($property.Value.Refresh_Interval_in_seconds)) | Out-Null
+            }
+            # Add the script entry to the result hash with default last refresh date
+            $hash.($Type.Name)[$property.Name] = $property.Value
+            $hash.($Type.Name).($property.Name) | `
+                Add-Member -MemberType NoteProperty -Name "Last_Refresh_time" -Value $defaultLastRefreshDate
+            $hash.($Type.Name).($property.Name) | `
+                Add-Member -MemberType NoteProperty -Name "Next_Run" -Value $defaultNextRunDate
+        }
+    }
+    # Put last refresh intervals into SQL table
+    Update-RefreshIntervalinSQLtable -Inputhash $hash
+    # Run the SQL Query and get last execution dates
+    $LastExecution = Get-LastExecution
+    # Loop through data from SQL and overwrite the default last refresh date with the actual one
+    for ($i = 0; $i -lt $LastExecution.Count; $i++) {
+        $Type = $LastExecution[$i].Type
+        $Name = $LastExecution[$i].Name
+        $LastRefresh = $LastExecution[$i].Last_Start_Time
+        $NextRun = $LastExecution[$i].Next_Run
+        # Skip the iteration if value is null
+        if ($null -eq $LastRefresh) {
+            continue
+        }
+        try {
+            $hash.$Type.$Name.Last_Refresh_time = $LastRefresh
+            $hash.$Type.$Name.Next_Run = $NextRun
+        }
+        catch {
+            if ($Name -in $skippedScripts) {
+                Write-Log -Message "$Type script $Name has refresh interval set to 0, but it was running in the past" -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH
+            }
+            else {
+                Write-Log -Message "$Type script $Name does not exist in config file" -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH
+            }   
+        }
+    }
+    # Calculate Shift time required to optimize the timing when scripts are triggered
+    $Count = ($refreshIntervalsArray | Where-Object { $_ -eq $Script:MAX_SLEEP_INTERVAL }).count
+    New-Variable -Name "SHIFT_SCRIPT_RUN" -Value $($Script:MAX_SLEEP_INTERVAL / ($Count + 1)) `
+        -Force -Scope Global
+    New-Variable -Name "NUMBER_OF_TIMES_SHIFT_SCRIPT_RUN_CAN_BE_USED" -Value $($Count) -Force -Scope Global
+    New-Variable -Name "NUMBER_OF_SCRIPTS_TO_RUN_OUT_OF_SCHEDULE" -Value $($ScriptsOutOfSchedule) -Force -Scope Global
+    # Return built hash
+    return $hash
+}
 function Get-LastExecution {
-    # Get all data gathered in Last Execution SQL table
-    return (Invoke-SQLquery -FileQuery "$SQL_QUERIES_DIRECTORY/LastExecution.sql"  -SQLDBName $SQL_LOG_DATABASE)
+    $runSuccessfully = $false
+    $sqlError = ""
+    for ($i = 0; $i -lt $SQL_NUMBER_OF_TRIES_BEFORE_EXIT; $i++) {
+        Start-Sleep -Milliseconds ($i * $SQL_SLEEPTIME_BETWEEN_TRIES_MS)
+        # Get all core data from Last Execution SQL table
+        try {
+            $Result = Invoke-SQLquery -FileQuery "$SQL_LAST_EXECUTION"  -SQLDBName $SQL_LOG_DATABASE
+            $runSuccessfully = $true
+            break
+        }
+        catch {
+            $sqlError += "Get-LastExecution: $_"
+            Write-Log -Message "$sqlError" -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH 
+        }
+        if($runSuccessfully -eq $false){
+            throw $sqlError
+        }
+    }
+    return $Result
 }
 function Update-RefreshIntervalinSQLtable {
     param(
@@ -287,6 +389,21 @@ function Start-RecentlyStartedProcess {
         Write-Log -Message "RecentlyStarted - Main Process job started" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
     }
 }
+function Invoke-ScriptTriggerShift {
+    param (
+        $scriptInvokedInCurrentIteration,
+        $triggerShiftUsed
+    )
+    if (($scriptInvokedInCurrentIteration -eq $true) -and 
+        ($triggerShiftUsed -lt $Script:NUMBER_OF_TIMES_SHIFT_SCRIPT_RUN_CAN_BE_USED)) {
+        
+        $timeToShift = $($Script:SHIFT_SCRIPT_RUN * 1000)
+        Write-Log -Message "Script trigger Shift invoked for $timeToShift miliseconds" -Type "sleep" -Path $PROCESS_COORDINATOR_LOG_PATH
+        Start-Sleep -Milliseconds $timeToShift
+        return $($triggerShiftUsed + 1)
+    }
+    return $triggerShiftUsed
+}
 function Start-DataRetrievingJob {
     param(
         $Type,
@@ -351,4 +468,47 @@ function Invoke-UpdateStartLastExecution {
     $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
     # Execute Query on the Server
     Invoke-SQLquery -Query $Query -SQLDBName $SQL_LOG_DATABASE
+}
+function Invoke-ProcessCoordinatorSleep {
+    $SleepTime = Get-SleepTime
+    Write-Log -Message "Start Sleep $([int]$SleepTime) miliseconds" -Type "sleep" -Path $PROCESS_COORDINATOR_LOG_PATH
+    Start-Sleep -Milliseconds $SleepTime
+}
+function Get-SleepTime {
+    $runSuccessfully = $false
+    $sqlError = ""
+    for ($i = 0; $i -lt $SQL_NUMBER_OF_TRIES_BEFORE_EXIT; $i++) {
+        Start-Sleep -Milliseconds ($i * $SQL_SLEEPTIME_BETWEEN_TRIES_MS)
+        # Get Sleep time during which Process Coordinator 
+        try {
+            $Result = Invoke-SQLquery -FileQuery "$SQL_SLEEP_TIME_FOR_PROCESS_COORDINATOR"  -SQLDBName $SQL_LOG_DATABASE
+            $runSuccessfully = $true
+            break
+        }
+        catch {
+            $sqlError += "Get-SleepTime: $_`n"
+            Write-Log -Message "$sqlError" -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH 
+        }
+    }
+    if ($runSuccessfully -eq $false) {
+        throw $sqlError
+    }
+    if ($Result.SleepTime -le 500) {
+        $Result.SleepTime = 500
+    }    
+    return $($Result.SleepTime)
+}
+function Stop-ProcessCoordinator {
+    # Check if STOP_PROCESS_COORDINATOR was set to 1 
+    if ($STOP_PROCESS_COORDINATOR -eq 1) {
+        Write-Log -Message "Stop process invoked by command STOP_PROCESS_COORDINATOR" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+        return $false
+    }
+    # Check if STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER was set to 1 
+    if ($STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER -eq 1) {
+        Write-Log -Message "Stop process invoked by command STOP_PROCESS_AND_DISABLE_TASK_SCHEDULER" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+        Disable-ProcessCoordinatorScheduledTask
+        return $false
+    }
+    return $true
 }
