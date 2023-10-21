@@ -15,12 +15,17 @@
             * Disable-ProcessCoordinatorScheduledTask
         - Loop FUNCTIONS (Inside MainLoop):
             * Remove-OldLogFiles
+            * Get-ConfigurationDetails
             * Get-LastExecution
             * Update-RefreshIntervalinSQLtable
             * Get-NumberOfRecentylStartedDevices
             * Start-RecentlyStartedProcess
+            * Invoke-ScriptTriggerShift
             * Start-DataRetrievingJob
             * Invoke-UpdateStartLastExecution
+            * Invoke-ProcessCoordinatorSleep
+            * Get-SleepTime
+            * Stop-ProcessCoordinator
 
 .NOTES
 
