@@ -1,7 +1,7 @@
 {
     "Commands":  {
                      "Stop_Process_Coordinator":  0,
-                     "Stop_Process_and_Disable_Task_Scheduler":  0
+                     "Stop_Process_and_Disable_Task_Scheduler":  1
                  },
     "Objects":  {
                     "Get-DeviceHardwareDetails.ps1":  {

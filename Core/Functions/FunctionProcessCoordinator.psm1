@@ -431,9 +431,9 @@ function Invoke-ScriptTriggerShift {
         $triggerShiftUsed
     )
     if (($scriptInvokedInCurrentIteration -eq $true) -and 
-        ($triggerShiftUsed -lt $Script:NUMBER_OF_TIMES_SHIFT_SCRIPT_RUN_CAN_BE_USED)) {
+        ($triggerShiftUsed -lt $NUMBER_OF_TIMES_SHIFT_SCRIPT_RUN_CAN_BE_USED)) {
         
-        $timeToShift = $($Script:SHIFT_SCRIPT_RUN * 1000)
+        $timeToShift = $($SHIFT_SCRIPT_RUN * 1000)
         Write-Log -Message "Script trigger Shift invoked for $timeToShift miliseconds" -Type "sleep" -Path $PROCESS_COORDINATOR_LOG_PATH
         Start-Sleep -Milliseconds $timeToShift
         return $($triggerShiftUsed + 1)
