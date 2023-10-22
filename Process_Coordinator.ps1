@@ -17,7 +17,7 @@
 
 .NOTES
 
-    Version:            1.3
+    Version:            1.5
     Author:             Stanisław Horna
     Mail:               stanislawhorna@outlook.com
     GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
@@ -33,6 +33,8 @@
                                                 which is going through script types.
                                                 Sleep time calculation changed to Datetime which is retrieved from SQL,
                                                 just before Start-Sleep the number of milliseconds to sleep is calculated.
+    22-10-2023      Stanisław Horna         Deleting completed jobs in each iteration, 
+                                                instead of deleting them before the script was triggered once again.
 #>
 Import-Module ".\Core\Import-AllModules.psm1"
 Import-Module ".\Core\Variables\VariableProcessCoordinator.psm1"
@@ -68,6 +70,8 @@ function Invoke-MainLoop {
             -Force -Scope Global -Option ReadOnly
         # Cleanup old logs
         Remove-OldLogFiles
+        # Remove jobs which are not in "Running" state
+        Remove-CompletedDataRetrievingJobs
         # Get jobs to run and time thresholds
         $Config = Get-ConfigurationDetails
         $numTriggerShiftUsed = 0
@@ -79,10 +83,12 @@ function Invoke-MainLoop {
         }
         # Loop through all script types
         foreach ($C in $COMPONENTS_TO_LOOP_THROUGH) {
+            Write-Log -Message "$C scripts loop started" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
             # Loop through all scripts in a given type
             foreach ($S in $Config.$C.Keys) {
                 # Check if next run time has passed
                 if ($(Get-Date) -ge $($Config.$C.$S.'Next_Run')) {
+                    Write-Log -Message "Invoking: $S" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
                     # Verify if there are any other scripts triggered in this While loop iteration
                     # If yes than invoke the time shift if number of shifts has not been exceeded
                     $numTriggerShiftUsed = Invoke-ScriptTriggerShift `
@@ -92,7 +98,8 @@ function Invoke-MainLoop {
                     $scriptInvokedInCurrentIteration = `
                         Start-DataRetrievingJob -Name $S -Type $C
                 }
-            } 
+            }
+            Write-Log -Message "$C scripts loop completed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
         }
         # Calculate the time until the next script should be invoked
         # Start-Sleep until the next script will require running

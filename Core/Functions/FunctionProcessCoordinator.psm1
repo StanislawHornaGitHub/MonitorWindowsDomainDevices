@@ -15,6 +15,7 @@
             * Disable-ProcessCoordinatorScheduledTask
         - Loop FUNCTIONS (Inside MainLoop):
             * Remove-OldLogFiles
+            * Remove-CompletedDataRetrievingJobs
             * Get-ConfigurationDetails
             * Get-LastExecution
             * Update-RefreshIntervalinSQLtable
@@ -22,6 +23,7 @@
             * Start-RecentlyStartedProcess
             * Invoke-ScriptTriggerShift
             * Start-DataRetrievingJob
+            * Remove-DataRetrievingJob
             * Invoke-UpdateStartLastExecution
             * Invoke-ProcessCoordinatorSleep
             * Get-SleepTime
@@ -29,7 +31,7 @@
 
 .NOTES
 
-    Version:            1.0
+    Version:            1.1
     Author:             Stanisław Horna
     Mail:               stanislawhorna@outlook.com
     GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
@@ -37,6 +39,10 @@
     ChangeLog:
 
     Date            Who                     What
+    22-10-2023      Stanisław Horna         Unification of removing any DataRetrieving jobs, new functions added:
+                                                    - Remove-DataRetrievingJob
+                                                Remove-CompletedDataRetrievingJobs - function added to delete completed jobs,
+                                                in each Main Loop iteration
 #>
 ########################
 ## One time FUNCTIONS ##
@@ -65,7 +71,7 @@ function Test-RootContents {
         }
     }
     if ($Status -eq $false) {
-        throw "Some Components are missing"
+        throw "Test-RootContents: Some Components are missing"
     }
     Write-Log -Message "Component compliance passed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
 }
@@ -86,15 +92,20 @@ function Invoke-LogFolderStructure {
 function Test-SQLserver {
     Write-Log -Message "SQL Server Availability started" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
     # Wait until the SQL Server will be able to comunicate with the Process Server
-    while ($(Test-SQLserverAvailability -BypassEmptyInventory $BYPASS_EMPTY_INVENTORY) -eq $false) {
+    while ($(Test-SQLserverAvailability -BypassEmptyInventory $SQL_BYPASS_EMPTY_INVENTORY) -eq $false) {
         Start-Sleep -Seconds $TEST_SQL_SLEEP_TIME_SECONDS
     }
     Write-Log -Message "SQL Server Availability passed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
 }
 function Remove-OldJobs {
     Write-Log -Message "Remove old jobs started" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
-    # To avoid errors remove remaining jobs
-    Get-Job | Remove-Job -Force
+    # To avoid errors remove jobs if there are any
+    try {
+        Get-Job | Remove-Job -Force -ErrorAction Stop
+    }
+    catch {
+        throw "Remove-OldJobs: $_"
+    }
     Write-Log -Message "Old jobs removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
 }
 function Set-StopFlagToFalse {
@@ -128,36 +139,8 @@ function Stop-AllJobs {
     while ($null -ne (Get-Job) -and ($Time.ElapsedMilliseconds -le ($TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS * 1000))) {
         # Get the first job name which is not running
         $Name = (Get-Job | Where-Object { ($_.State -ne "Running") } | Select-Object -First 1).Name
-        # If there is no such job continue to the next iteration
-        if ($null -ne $Name) {
-            if ($Name -eq "RecentlyStarted - Main Process") {
-                Remove-Job -Name $Name -Force
-                continue
-            }
-            else {
-                # Create entry to push to the SQL statuses
-                $Entry = [PSCustomObject]@{
-                    'Name'           = $Name
-                    'Last_Exit_Code' = $null
-                    'Errors'         = $null
-                }
-                # Get job output
-                try {
-                    Receive-Job -Name $Name -ErrorAction Stop | Out-Null
-                    $Entry.'Last_Exit_Code' = 0
-                }
-                catch {
-                    Write-Log -Message "$Name - $_" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
-                    $Entry.'Errors' = $_
-                    $Entry.'Last_Exit_Code' = 1
-                }
-                Remove-Job -Name $Name -Force
-                # Write Log and update information in SQL
-                Write-Log -Message "Job $Name removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
-                $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
-                Invoke-SQLquery -Query $Query -SQLDBName $SQL_LOG_DATABASE
-            }
-        }
+        # If name is not null remove the job and write required log informations
+        Remove-DataRetrievingJob -Name $Name
     }
     Write-Log -Message "Wait loop exited" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
     # Get jobs which did not end in waiting period
@@ -167,7 +150,8 @@ function Stop-AllJobs {
         # Stop all remaining jobs remove them and write a log
         $remainingJobs | Stop-Job -Confirm:$false
         $remainingJobs | Remove-Job -Force
-        Write-log -Message "Background jobs were running longer than TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS ($TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS)" `
+        Write-log `
+        -Message "Following background jobs were running longer than TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS ($TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS): $($remainingJobs.Name -join ", ")" `
             -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH
     }
     
@@ -215,6 +199,24 @@ function Remove-OldLogFiles {
         Remove-Item -Path $($_.FullName) -Force -Confirm:$false
     }
     Write-Log -Message "Logs Cleanup completed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+}
+function Remove-CompletedDataRetrievingJobs {
+    Write-Log -Message "Remove-CompletedDataRetrievingJobs started" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+    # Get all job names with status different than "Running"
+    $completedJobs = (Get-Job | Where-Object { ($_.State -ne "Running") }).Name
+    $jobsRemovedCounter = 0
+    # Loop through retrieved job names and try to remove them
+    foreach($Name in $completedJobs){
+        try {
+            Remove-DataRetrievingJob -Name $Name
+            $jobsRemovedCounter++
+        }
+        catch {
+            Write-Log -Message "Remove-CompletedDataRetrievingJobs: $_" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
+        }
+        
+    }
+    Write-Log -Message "Remove-CompletedDataRetrievingJobs completed. $jobsRemovedCounter jobs removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
 }
 function Get-ConfigurationDetails {
     Write-Log -Message "Reading config file" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
@@ -316,7 +318,7 @@ function Get-LastExecution {
             $sqlError += "Get-LastExecution: $_"
             Write-Log -Message "$sqlError" -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH 
         }
-        if($runSuccessfully -eq $false){
+        if ($runSuccessfully -eq $false) {
             throw $sqlError
         }
     }
@@ -414,50 +416,80 @@ function Start-DataRetrievingJob {
         $Type,
         $Name
     )
-    $Currentjob = Get-Job -Name $Name -ErrorAction SilentlyContinue
-    # if it is null than nothing to process regarding job completion
-    if ($null -ne $Currentjob) {
-        $Entry = [PSCustomObject]@{
-            'Name'           = $Name
-            'Last_Exit_Code' = $null
-            'Errors'         = $null
-        }
-        # if job is still running 
-        if ($Currentjob.State -eq "Running") {
-            $Entry.'Last_Exit_Code' = 111
-            $Entry.'Errors' = "$((Get-date).ToString("yyyy-MM-dd HH:mm:ss")) - Last execution did not end, Stop will be forced"
-            Write-Log -Message "Job $Name last execution did not end" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
-            Stop-Job -Name $Name -Confirm:$false
-        }
-        else {
-            # Check if there were any errors
-            try {
-                Receive-Job -Name $Name -ErrorAction Stop | Out-Null
-                $Entry.'Last_Exit_Code' = 0
-            }
-            catch {
-                Write-Log -Message "$Name - $_" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
-                $Entry.'Errors' = $_
-                $Entry.'Last_Exit_Code' = 1
-            }
-        }
-        Stop-Job -Name $Name -Confirm:$false
-        Remove-Job -Name $Name -Force
-        Write-Log -Message "Job $Name removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
-        $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
-        Invoke-SQLquery -Query $Query -SQLDBName $SQL_LOG_DATABASE
-    }
+    # Check if job with this name already exist, if yes remove it
+    Remove-DataRetrievingJob -Name $Name
     # Check if devices are replying to ICMP
-    & "$TEST_ICMP_DEVICE_ACTIVE"
-    Write-Log -Message "Test Active devices invoked" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+    try {
+        & "$TEST_ICMP_DEVICE_ACTIVE"
+        Write-Log -Message "Test-ActiveDevices.ps1 completed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+    }
+    catch {
+        Write-Log -Message "Test-ActiveDevices: $_" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
+    }
     # Start new job
     Start-Job -Name $Name `
         -InitializationScript { Set-Location $env:DEVICE_MONITORING_ROOT_DIRECTORY } `
         -FilePath $("./Core/$Type/$Name") | Out-Null
-    # Write Log and update Last execution date in SQL
+    # Write success log and update SQL
     Write-Log -Message "Job $Name started" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
     Invoke-UpdateStartLastExecution -Name $Name -Type $Type
     return $true
+}
+function Remove-DataRetrievingJob {
+    param(
+        $Name
+    )
+    # Do not do anything if the name is null
+    if ($null -eq $Name) {
+        return
+    }
+    $Currentjob = Get-Job -Name $Name -ErrorAction SilentlyContinue
+    # if it is null than nothing to process regarding job completion
+    if ($null -eq $Currentjob) {
+        return
+    }
+    # Create an entry for SQL Table update
+    $Entry = [PSCustomObject]@{
+        'Name'           = $Name
+        'Last_Exit_Code' = $null
+        'Errors'         = $null
+    }
+    # if job is still running use dedicated error code, write logs and stop it
+    if ($Currentjob.State -eq "Running") {
+        $Entry.'Last_Exit_Code' = 111
+        $Entry.'Errors' = "$((Get-date).ToString("yyyy-MM-dd HH:mm:ss")) - Last execution did not end, Stop will be forced"
+        Write-Log -Message "Job $Name last execution did not end" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
+        Stop-Job -Name $Name -Confirm:$false
+    }
+    else {
+        # Check if there were any errors inside of the job
+        try {
+            Receive-Job -Name $Name -ErrorAction Stop | Out-Null
+            $Entry.'Last_Exit_Code' = 0
+        }
+        catch {
+            Write-Log -Message "$Name - $_" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
+            $Entry.'Errors' = $_
+            $Entry.'Last_Exit_Code' = 1
+        }
+    }
+    # Try to remove the job
+    try {
+        Remove-Job -Name $Name -Force -ErrorAction Stop
+    }
+    catch {
+        throw "Remove-DataRetrievingJob: $_"
+    }
+    # Write log
+    Write-Log -Message "Job $Name removed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+    # Retrun before updating SQL table if the job is "RecentlyStarted - Main Process"
+    # It should not be included in LastExecution table, because this job is not run on regular basis
+    if($Name -eq "RecentlyStarted - Main Process"){
+        return
+    }
+    # Update SQL
+    $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
+    Invoke-SQLquery -Query $Query -SQLDBName $SQL_LOG_DATABASE
 }
 function Invoke-UpdateStartLastExecution {
     param(
