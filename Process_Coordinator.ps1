@@ -17,7 +17,7 @@
 
 .NOTES
 
-    Version:            1.5
+    Version:            1.6
     Author:             Stanisław Horna
     Mail:               stanislawhorna@outlook.com
     GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
@@ -35,6 +35,7 @@
                                                 just before Start-Sleep the number of milliseconds to sleep is calculated.
     22-10-2023      Stanisław Horna         Deleting completed jobs in each iteration, 
                                                 instead of deleting them before the script was triggered once again.
+                                                Lock to run only one ProcessCoordinator instance added.
 #>
 Import-Module ".\Core\Import-AllModules.psm1"
 Import-Module ".\Core\Variables\VariableProcessCoordinator.psm1"
@@ -46,6 +47,7 @@ function Invoke-Main {
         Test-RootContents
         Invoke-LogFolderStructure
         Test-SQLserver
+        Invoke-InstanceLock
         Remove-OldJobs
         Set-StopFlagToFalse
         Invoke-MainLoop

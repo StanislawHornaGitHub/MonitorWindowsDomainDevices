@@ -18,6 +18,7 @@
     20-10-2023      Stanisław Horna         Variables scopes changed from "Script" to "Global"
     22-10-2023      Stanisław Horna         Tidying up file structure
 #>
+New-Variable -Name "PROCESS_SERVER_HOSTNAME" -Value $(HOSTNAME.EXE) -Force -Scope Global -Option ReadOnly
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Global
 New-Variable -Name "CONFIG_FILEPATH" -Value "./Config.json" -Force -Scope Global -Option ReadOnly
 # Task Scheduler
@@ -26,6 +27,7 @@ New-Variable -Name "SCHEDULED_TASK_PATH" "\MonitorWindowsDomainDevices" -Force -
 # SQL Server 
 New-Variable -Name "SQL_NUMBER_OF_TRIES_BEFORE_EXIT" -Value 3 -Force -Scope Global -Option ReadOnly
 New-Variable -Name "SQL_SLEEPTIME_BETWEEN_TRIES_MS" -Value 500 -Force -Scope Global -Option ReadOnly
+New-Variable -Name "SQL_LAST_INSTANCE_PID" -Value "$SQL_QUERIES_DIRECTORY/LastInstancePID.sql" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "SQL_LAST_EXECUTION" -Value "$SQL_QUERIES_DIRECTORY/LastExecution.sql" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "SQL_SLEEP_TIME_FOR_PROCESS_COORDINATOR" -Value "$SQL_QUERIES_DIRECTORY/GetProcessCoordinatorSleepTime.sql" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "SQL_TEST_SLEEP_TIME_SECONDS" -Value 60 -Force -Scope Global -Option ReadOnly

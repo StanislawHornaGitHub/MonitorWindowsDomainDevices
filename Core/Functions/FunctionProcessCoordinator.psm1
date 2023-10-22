@@ -97,6 +97,35 @@ function Test-SQLserver {
     }
     Write-Log -Message "SQL Server Availability passed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
 }
+function Invoke-InstanceLock {
+    Write-Log -Message "InstanceLock started" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+    $runSuccessfully = $false
+    $sqlError = ""
+    for ($i = 0; $i -lt $SQL_NUMBER_OF_TRIES_BEFORE_EXIT; $i++) {
+        Start-Sleep -Milliseconds ($i * $SQL_SLEEPTIME_BETWEEN_TRIES_MS)
+        # Get all core data from Last Execution SQL table
+        try {
+            $lastInstancePID = Invoke-SQLquery -FileQuery "$SQL_LAST_INSTANCE_PID"  -SQLDBName $SQL_LOG_DATABASE
+            $runSuccessfully = $true
+            break
+        }
+        catch {
+            $sqlError += "Invoke-InstanceLock: $_"
+            Write-Log -Message "$sqlError" -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH 
+        }
+        if ($runSuccessfully -eq $false) {
+            throw $sqlError
+        }
+    }
+    try {
+        Get-Process -Id $lastInstancePID.PID -ErrorAction Stop | Out-Null
+    }   
+    catch {
+        Write-Log -Message "Lock created for PID: $($PID)" -Type "InstanceLock" -Path $PROCESS_COORDINATOR_LOG_PATH 
+        return
+    }
+    throw "Process with ID: $($PID) can not continue. There is another ProcessCoordinator ($($lastInstancePID.PID)) running"
+}
 function Remove-OldJobs {
     Write-Log -Message "Remove old jobs started" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
     # To avoid errors remove jobs if there are any

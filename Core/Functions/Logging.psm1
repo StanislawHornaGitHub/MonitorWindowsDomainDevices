@@ -90,11 +90,13 @@ function Write-Log {
     )
     $Type = $Type.ToUpper()
     $date = $((Get-Date).ToString("yyyy-MM-dd HH:mm:ss\.fff"))
-    "$date - $Type : $Message" | Out-File -FilePath $Path -Append
+    "$date - $Type ; ($($PID)) : $Message" | Out-File -FilePath $Path -Append
     if ($UpdateFileLogOnly -eq $false) {
         $Message = $Message.Replace("'", "`"")
         $Entry = [PSCustomObject]@{
             'Timestamp'    = $date
+            'Hostname'     = $PROCESS_SERVER_HOSTNAME
+            'PID'          = $PID
             'Message_type' = $Type
             'Message'      = $Message
         }
