@@ -37,10 +37,12 @@
         ChangeLog:
 
         Date            Who                     What
-
+        23-10-2023      Stanisław Horna         RecentlyStarted Job is not logged in Last execution table,
+                                                    because this script is not triggered regularly and has not any type,
+                                                    it is excluded from result of this query
 */
-DECLARE @StartDate AS Date = '2023-09-12'
-DECLARE @EndDate AS Date = '2023-09-13'
+DECLARE @StartDate AS Date = '2023-10-23'
+DECLARE @EndDate AS Date = '2023-10-24'
 
 -- First table section
 SELECT
@@ -49,8 +51,8 @@ SELECT
     COUNT(Script_Name) AS 'Number of executions',
     AVG(Processed_devices) AS 'Average Number of processed devices'
 FROM Log_Job
-LEFT JOIN LastExecution ON CONCAT(Log_Job.Script_name, '.ps1') = LastExecution.Name
-Where [Start_time] > @StartDate AND [End_time] < @EndDate
+LEFT JOIN LastExecution ON Log_Job.Script_name = LastExecution.Name
+Where [Start_time] > @StartDate AND [End_time] < @EndDate AND [Type] IS NOT NULL
 GROUP BY LastExecution.[Type]
 ORDER BY LastExecution.[Type]
 
@@ -62,8 +64,8 @@ SELECT
     COUNT(Script_Name) AS 'Number of executions',
     AVG(Processed_devices) AS 'Average Number of processed devices'
 FROM Log_Job
-LEFT JOIN LastExecution ON CONCAT(Log_Job.Script_name, '.ps1') = LastExecution.Name
-Where [Start_time] > @StartDate AND [End_time] < @EndDate
+LEFT JOIN LastExecution ON Log_Job.Script_name = LastExecution.Name
+Where [Start_time] > @StartDate AND [End_time] < @EndDate AND [Type] IS NOT NULL
 GROUP BY Script_name, LastExecution.[Type]
 ORDER BY LastExecution.[Type]
 
@@ -75,7 +77,7 @@ SELECT
     COUNT(Script_Name) AS 'Number of executions',
     Processed_devices
 FROM Log_Job
-LEFT JOIN LastExecution ON CONCAT(Log_Job.Script_name, '.ps1') = LastExecution.Name
-Where [Start_time] > @StartDate AND [End_time] < @EndDate
+LEFT JOIN LastExecution ON Log_Job.Script_name = LastExecution.Name
+Where [Start_time] > @StartDate AND [End_time] < @EndDate AND [Type] IS NOT NULL
 GROUP BY Script_name, Processed_devices, LastExecution.[Type]
 ORDER BY Script_name, Processed_devices

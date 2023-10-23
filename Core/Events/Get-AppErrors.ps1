@@ -43,7 +43,7 @@ param(
     [switch]$DEBUG
 )
 Import-Module "./Core/Import-AllModules.psm1"
-New-Variable -Name "SCRIPT_NAME" -Value "Get-AppErrors" -Force -Scope Global -Option ReadOnly
+New-Variable -Name "SCRIPT_NAME" -Value "Get-AppErrors.ps1" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "QUERY_TO_RUN_WITH_SCHEDULE" -Value "ActiveDevicesWithLogonsMonitoring.sql" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "QUERY_TO_RUN_OUTOF_SCHEDULE" -Value "RecentlyStarted_WithLogonsMonitoring.sql" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "TIMER" -Value $([System.Diagnostics.Stopwatch]::StartNew()) -Force -Scope Global

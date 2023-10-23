@@ -48,7 +48,7 @@ Param(
 )
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
-New-Variable -Name "SCRIPT_NAME" -Value "Get-DeviceInventoryToMonitor" -Force -Scope Global -Option ReadOnly
+New-Variable -Name "SCRIPT_NAME" -Value "Get-DeviceInventoryToMonitor.ps1" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "TIMER" -Value $([System.Diagnostics.Stopwatch]::StartNew()) -Force -Scope Global
 
 New-Variable -Name "DNS_SERVER_NAME" -Value "pfsense" -Force -Scope Script -Option ReadOnly
