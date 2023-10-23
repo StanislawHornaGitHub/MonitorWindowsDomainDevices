@@ -7,11 +7,11 @@
         None
 
     .OUTPUTS
-        All columns of LastExecution Table.
+        All columns from LastExecution Table, which are required for ProcessCoordinator operations
 
     .NOTES
 
-        Version:            1.1
+        Version:            1.2
         Author:             Stanisław Horna
         Mail:               stanislawhorna@outlook.com
         GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
@@ -20,6 +20,7 @@
 
         Date            Who                     What
         20-10-2023      Stanisław Horna         Next_Run Column added to the output
+        23-10-2023      Stanisław Horna         AVG_Processing_Duration_ms Column added
 
 */
 SELECT 
@@ -27,5 +28,6 @@ SELECT
     [Type],
     Refresh_Interval_in_seconds,
     Last_Start_Time,
+    AVG_Processing_Duration_ms,
     DATEADD(ss,Refresh_Interval_in_seconds,Last_Start_Time) AS 'Next_Run'
 FROM LastExecution

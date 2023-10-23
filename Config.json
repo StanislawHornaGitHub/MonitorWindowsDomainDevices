@@ -71,7 +71,10 @@
                                                        },
                 "ExcludeVMfromTemperatureMonitoring.sql":  {
                                                                "Refresh_Interval_in_seconds":  28800
-                                                           }
+                                                           },
+                "CalculateSubScriptAverageProcessingTimeForLastDay.sql":  {
+                                                                              "Refresh_Interval_in_seconds":  14400
+                                                                          }
             },
     "Modules":  [
                     "Import-AllModules.psm1",
