@@ -83,13 +83,13 @@ function Invoke-MainLoop {
         if (($NUMBER_OF_SCRIPTS_TO_RUN_OUT_OF_SCHEDULE -gt 0) -and ($NumberOfRecentlyStartedDevices -gt 0)) {
             Start-RecentlyStartedProcess -Config $Config -NumberOfRecentlyStartedDevices $NumberOfRecentlyStartedDevices
         }
-        # Loop through all script types
-        foreach ($C in $COMPONENTS_TO_LOOP_THROUGH) {
-            Write-Log -Message "$C scripts loop started" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
-            # Loop through all scripts in a given type
-            foreach ($S in $Config.$C.Keys) {
+        # Loop through all PowerShell Script types
+        foreach ($T in $POWERSHELL_SCRIPT_TYPES_TO_LOOP_THROUGH) {
+            Write-Log -Message "$T scripts loop started" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+            # Loop through all PowerShell scripts in a given type
+            foreach ($S in $Config.$T.Keys) {
                 # Check if next run time has passed
-                if ($(Get-Date) -ge $($Config.$C.$S.'Next_Run')) {
+                if ($(Get-Date) -ge $($Config.$T.$S.'Next_Run')) {
                     Write-Log -Message "Invoking: $S" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
                     # Verify if there are any other scripts triggered in this While loop iteration
                     # If yes than invoke the time shift if number of shifts has not been exceeded
@@ -98,10 +98,18 @@ function Invoke-MainLoop {
                         -triggerShiftUsed $numTriggerShiftUsed
                     # Invoke script to retrieve data and increment launched scripts counter
                     $scriptInvokedInCurrentIteration = `
-                        Start-DataRetrievingJob -Name $S -Type $C
+                        Start-DataRetrievingJob -Name $S -Type $T
                 }
             }
-            Write-Log -Message "$C scripts loop completed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+            Write-Log -Message "$T scripts loop completed" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+        }
+        # Loop through SQL Scripts
+        foreach ($SQL in $Config.SQL.Keys) {
+            if ($(Get-Date) -ge $($Config.SQL.$SQL.'Next_Run')) {
+                Write-Log -Message "Invoking: $SQL" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+                # Invoke SQL script
+                Start-SQLqueryJob -SQLqueryFileName $SQL
+            }
         }
         # Calculate the time until the next script should be invoked
         # Start-Sleep until the next script will require running

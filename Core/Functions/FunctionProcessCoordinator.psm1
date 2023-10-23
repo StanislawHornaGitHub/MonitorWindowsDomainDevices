@@ -325,7 +325,7 @@ function Get-ConfigurationDetails {
                 Write-Log -Message "$Type script $Name has refresh interval set to 0, but it was running in the past" -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH
             }
             else {
-                Write-Log -Message "$Type script $Name does not exist in config file" -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH
+                Write-Log -Message "$Type script $Name does not exist in Last Execution Table" -Type "warning" -Path $PROCESS_COORDINATOR_LOG_PATH
             }   
         }
     }
@@ -363,8 +363,7 @@ function Update-RefreshIntervalinSQLtable {
     param(
         $Inputhash
     )
-    $powershellScriptTypes = @("SyncData", "Events", "Objects")
-    foreach ($T in $powershellScriptTypes) {
+    foreach ($T in $Inputhash.Keys) {
         foreach ($S in $Inputhash.$T.Keys) {
             $Entry = [PSCustomObject]@{
                 'Name'                        = $S
@@ -525,6 +524,44 @@ function Remove-DataRetrievingJob {
     # Update SQL
     $Query = Get-SQLdataUpdateQuery -Entry $Entry -TableName "LastExecution" -sqlPrimaryKey 'Name'
     Invoke-SQLquery -Query $Query -SQLDBName $SQL_LOG_DATABASE
+}
+function Start-SQLqueryJob {
+    param(
+        $SQLqueryFileName
+    )
+    # Check if job with this name already exist, if yes remove it
+    Remove-DataRetrievingJob -Name $SQLqueryFileName
+    # Start new job
+    Start-Job -Name $SQLqueryFileName `
+        -InitializationScript { Set-Location $env:DEVICE_MONITORING_ROOT_DIRECTORY } `
+        -ScriptBlock {
+        param(
+            $SQLqueryFileName
+        )
+        Import-Module "./Core/Import-AllModules.psm1"
+        New-Variable -Name "TIMER" -Value $([System.Diagnostics.Stopwatch]::StartNew()) -Force -Scope Global
+        New-Variable -Name "SCRIPT_NAME" -Value $SQLqueryFileName -Force -Scope Global -Option ReadOnly
+        New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
+        Write-Joblog
+        try {
+            $Result = Invoke-Sqlcmd `
+                -ServerInstance $SQL_SERVER `
+                -InputFile "./Core/SQL/Scripts/$SQLqueryFileName" `
+                -ErrorAction Stop
+            Write-Joblog -Message $Result
+        }
+        catch {
+            Write-Joblog -Message $_.Exception.Message
+            $EXIT_CODE = 1
+        }
+        finally {
+            Write-Joblog -Completed -ProcessedDevices "" -EXIT_CODE $EXIT_CODE 
+            exit 
+        }
+    } -ArgumentList $SQLqueryFileName | Out-Null
+    # Write success log and update SQL
+    Write-Log -Message "Job $SQLqueryFileName started" -Type "info" -Path $PROCESS_COORDINATOR_LOG_PATH
+    Invoke-UpdateStartLastExecution -Name $SQLqueryFileName -Type "SQL"
 }
 function Invoke-UpdateStartLastExecution {
     param(

@@ -67,12 +67,10 @@
                  },
     "SQL":  {
                 "ExcludeVMfromHyper-Vmonitoring.sql":  {
-                                                           "Refresh_Interval_in_seconds":  0,
-                                                           "RunOnceDeviceBecomeActive":  0
+                                                           "Refresh_Interval_in_seconds":  28800
                                                        },
-                "ExcluedVMfromTemperatureMonitoring.sql":  {
-                                                               "Refresh_Interval_in_seconds":  0,
-                                                               "RunOnceDeviceBecomeActive":  0
+                "ExcludeVMfromTemperatureMonitoring.sql":  {
+                                                               "Refresh_Interval_in_seconds":  28800
                                                            }
             },
     "Modules":  [

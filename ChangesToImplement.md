@@ -9,8 +9,8 @@
     From Improvements section
         1. Done
         2. Done
-        3.
-        4.
+        3. Done
+        4. Will be implemented once additional comunication channel will be used (e.g. e-mail)
         5. Done
 
 

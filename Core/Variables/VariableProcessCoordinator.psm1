@@ -39,7 +39,7 @@ New-Variable -Name "MAX_SLEEP_INTERVAL" -Value 3600000 -Force -Scope Global
 New-Variable -Name "SHIFT_SCRIPT_RUN" -Value 0 -Force -Scope Global
 New-Variable -Name "NUMBER_OF_TIMES_SHIFT_SCRIPT_RUN_CAN_BE_USED" -Value 0 -Force -Scope Global
 New-Variable -Name "TIME_TO_WAIT_BEFORE_CANCELING_REMAING_JOBS" -Value 60 -Force -Scope Global -Option ReadOnly
-New-Variable -Name "COMPONENTS_TO_LOOP_THROUGH" -Value @(
+New-Variable -Name "POWERSHELL_SCRIPT_TYPES_TO_LOOP_THROUGH" -Value @(
     "SyncData",
     "Events",
     "Objects"
