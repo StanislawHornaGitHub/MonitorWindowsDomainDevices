@@ -73,7 +73,7 @@ function Invoke-Main {
         $EXIT_CODE = 1
     }
     finally {
-        Write-Joblog -Completed -ProcessedDevices $PROCESSED_DEVICES -EXIT_CODE $EXIT_CODE
+        Write-Joblog -Completed -ProcessedDevices 0 -EXIT_CODE $EXIT_CODE
         exit $EXIT_CODE
     }
 }
