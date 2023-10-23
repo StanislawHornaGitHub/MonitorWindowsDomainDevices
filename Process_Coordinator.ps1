@@ -17,7 +17,7 @@
 
 .NOTES
 
-    Version:            1.6
+    Version:            1.7
     Author:             Stanisław Horna
     Mail:               stanislawhorna@outlook.com
     GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
@@ -36,6 +36,7 @@
     22-10-2023      Stanisław Horna         Deleting completed jobs in each iteration, 
                                                 instead of deleting them before the script was triggered once again.
                                                 Lock to run only one ProcessCoordinator instance added.
+    23-10-2023      Stanisław Horna         Mechanism to run SQL queries regularly added
 #>
 Import-Module ".\Core\Import-AllModules.psm1"
 Import-Module ".\Core\Variables\VariableProcessCoordinator.psm1"
