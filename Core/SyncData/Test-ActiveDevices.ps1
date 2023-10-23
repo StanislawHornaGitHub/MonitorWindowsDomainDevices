@@ -47,7 +47,7 @@ function Invoke-Main {
     }
 }
 function Test-ComputersViaPing {
-    $UpdateIsActiveQueryTemplate = Get-Content -Path "$SQL_QUERIES_DIRECTORY/UpdateIsActive.sql"
+    $UpdateIsActiveQueryTemplate = Get-Content -Path "$SQL_VALUE_UPDATE_QUERIES/UpdateIsActive.sql"
     for ($i = 0; $i -lt $COMPUTER.Count; $i++) {
         $IP = $COMPUTER[$i].IPaddress
         if ((Invoke-Ping -IPaddress $IP).PingSucceded -eq $false) {

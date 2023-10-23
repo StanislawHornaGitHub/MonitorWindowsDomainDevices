@@ -27,9 +27,9 @@ New-Variable -Name "SCHEDULED_TASK_PATH" "\MonitorWindowsDomainDevices" -Force -
 # SQL Server 
 New-Variable -Name "SQL_NUMBER_OF_TRIES_BEFORE_EXIT" -Value 3 -Force -Scope Global -Option ReadOnly
 New-Variable -Name "SQL_SLEEPTIME_BETWEEN_TRIES_MS" -Value 500 -Force -Scope Global -Option ReadOnly
-New-Variable -Name "SQL_LAST_INSTANCE_PID" -Value "$SQL_QUERIES_DIRECTORY/LastInstancePID.sql" -Force -Scope Global -Option ReadOnly
-New-Variable -Name "SQL_LAST_EXECUTION" -Value "$SQL_QUERIES_DIRECTORY/LastExecution.sql" -Force -Scope Global -Option ReadOnly
-New-Variable -Name "SQL_SLEEP_TIME_FOR_PROCESS_COORDINATOR" -Value "$SQL_QUERIES_DIRECTORY/GetProcessCoordinatorSleepTime.sql" -Force -Scope Global -Option ReadOnly
+New-Variable -Name "SQL_LAST_INSTANCE_PID" -Value "$SQL_PROCESS_COORDINATOR_QUERIES/LastInstancePID.sql" -Force -Scope Global -Option ReadOnly
+New-Variable -Name "SQL_LAST_EXECUTION" -Value "$SQL_PROCESS_COORDINATOR_QUERIES/LastExecution.sql" -Force -Scope Global -Option ReadOnly
+New-Variable -Name "SQL_SLEEP_TIME_FOR_PROCESS_COORDINATOR" -Value "$SQL_PROCESS_COORDINATOR_QUERIES/GetProcessCoordinatorSleepTime.sql" -Force -Scope Global -Option ReadOnly
 New-Variable -Name "SQL_TEST_SLEEP_TIME_SECONDS" -Value 60 -Force -Scope Global -Option ReadOnly
 New-Variable -Name "SQL_BYPASS_EMPTY_INVENTORY" -Value $false -Force -Scope Global -Option ReadOnly
 # Data Retriving Scripts

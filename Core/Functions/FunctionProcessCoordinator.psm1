@@ -64,9 +64,15 @@ function Test-RootContents {
     # Loop through each script path and check if file exists
     foreach ($folder in ($Config | Get-Member -MemberType NoteProperty).Name) {
         foreach ($file in ($Config.$folder | Get-Member -MemberType NoteProperty).Name) {
-            if ((-not (Test-Path "./Core/$folder/$file")) -and ($folder -ne "Commands")) {
-                Write-Log -Message "Script $file is missing" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
+            if ((-not (Test-Path "./Core/$folder/$file")) -and ($folder -ne "Commands") -and ($folder -ne "SQL")) {
+                Write-Log -Message "PowerShell Script $file is missing" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
                 $Status = $false
+            }
+            if($folder -eq "SQL"){
+                if((-not (Test-Path "./Core/$folder/Scripts/$file"))){
+                    Write-Log -Message "SQL Script $file is missing" -Type "error" -Path $PROCESS_COORDINATOR_LOG_PATH
+                    $Status = $false
+                }
             }
         }
     }
@@ -372,7 +378,7 @@ function Update-RefreshIntervalinSQLtable {
     }
 }
 function Get-NumberOfRecentylStartedDevices {
-    $Devices = Invoke-SQLquery -FileQuery "$SQL_QUERIES_DIRECTORY\ComputersToProcess\RecentlyStarted_ActiveDevices.sql"
+    $Devices = Invoke-SQLquery -FileQuery "$SQL_RECENTLY_STARTED_QUERIES\RecentlyStarted_ActiveDevices.sql"
     if (($null -ne $Devices)) {
         if (($null -ne $Devices.count)) {
             return $($Devices.count)

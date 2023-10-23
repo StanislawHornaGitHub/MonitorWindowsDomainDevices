@@ -1,7 +1,7 @@
 {
     "Commands":  {
                      "Stop_Process_Coordinator":  0,
-                     "Stop_Process_and_Disable_Task_Scheduler":  1
+                     "Stop_Process_and_Disable_Task_Scheduler":  0
                  },
     "Objects":  {
                     "Get-DeviceHardwareDetails.ps1":  {
@@ -65,56 +65,16 @@
                                                     "RunOnceDeviceBecomeActive":  0
                                                 }
                  },
-    "SQL/Query":  {
-                      "ComputersToProcess/ActiveDevices.sql":  {
-                                                                   "Refresh_Interval_in_seconds":  0,
-                                                                   "RunOnceDeviceBecomeActive":  0
-                                                               },
-                      "ComputersToProcess/RecentlyStarted_ActiveDevices.sql":  {
-                                                                                   "Refresh_Interval_in_seconds":  0,
-                                                                                   "RunOnceDeviceBecomeActive":  0
-                                                                               },
-                      "ComputersToProcess/ActiveDevicesWithLogonsMonitoring.sql":  {
-                                                                                       "Refresh_Interval_in_seconds":  0,
-                                                                                       "RunOnceDeviceBecomeActive":  0
-                                                                                   },
-                      "ComputersToProcess/RecentlyStarted_WithLogonsMonitoring.sql":  {
-                                                                                          "Refresh_Interval_in_seconds":  0,
-                                                                                          "RunOnceDeviceBecomeActive":  0
-                                                                                      },
-                      "ComputersToProcess/ActiveDevicesWithOpenHardwareMonitor.sql":  {
-                                                                                          "Refresh_Interval_in_seconds":  0,
-                                                                                          "RunOnceDeviceBecomeActive":  0
-                                                                                      },
-                      "ComputersToProcess/RecentlyStarted_WithOpenHardwareMonitor.sql":  {
-                                                                                             "Refresh_Interval_in_seconds":  0,
-                                                                                             "RunOnceDeviceBecomeActive":  0
-                                                                                         },
-                      "ComputersToProcess/ActiveDevicesWithHyperVmonitoring.sql":  {
-                                                                                       "Refresh_Interval_in_seconds":  0,
-                                                                                       "RunOnceDeviceBecomeActive":  0
-                                                                                   },
-                      "ComputersToProcess/RecentlyStarted_WithHyperVmonitoring.sql":  {
-                                                                                          "Refresh_Interval_in_seconds":  0,
-                                                                                          "RunOnceDeviceBecomeActive":  0
-                                                                                      },
-                      "UpdateDataTableTemplate.sql":  {
-                                                          "Refresh_Interval_in_seconds":  0,
-                                                          "RunOnceDeviceBecomeActive":  0
-                                                      },
-                      "UpdateDataTableTemplateWithChangeLog.sql":  {
-                                                                       "Refresh_Interval_in_seconds":  0,
-                                                                       "RunOnceDeviceBecomeActive":  0
-                                                                   },
-                      "UpdateIsActive.sql":  {
-                                                 "Refresh_Interval_in_seconds":  0,
-                                                 "RunOnceDeviceBecomeActive":  0
-                                             },
-                      "InsertDataIfnotExist.sql":  {
-                                                       "Refresh_Interval_in_seconds":  0,
-                                                       "RunOnceDeviceBecomeActive":  0
-                                                   }
-                  },
+    "SQL":  {
+                "ExcludeVMfromHyper-Vmonitoring.sql":  {
+                                                           "Refresh_Interval_in_seconds":  0,
+                                                           "RunOnceDeviceBecomeActive":  0
+                                                       },
+                "ExcluedVMfromTemperatureMonitoring.sql":  {
+                                                               "Refresh_Interval_in_seconds":  0,
+                                                               "RunOnceDeviceBecomeActive":  0
+                                                           }
+            },
     "Modules":  [
                     "Import-AllModules.psm1",
                     "Functions/FunctionProcessCoordinator.psm1",
@@ -126,6 +86,27 @@
                     "Variables/VariableEnvironment.psm1",
                     "Variables/VariableLog.psm1",
                     "Variables/VariableProcessCoordinator.psm1",
-                    "Variables/VariableSQL.psm1"
+                    "Variables/VariableSQL.psm1",
+                    "SQL/ComputersToProcess/ActiveDevices.sql",
+                    "SQL/ComputersToProcess/ActiveDevicesWithHyperVmonitoring.sql",
+                    "SQL/ComputersToProcess/ActiveDevicesWithLogonsMonitoring.sql",
+                    "SQL/ComputersToProcess/ActiveDevicesWithOpenHardwareMonitor.sql",
+                    "SQL/ComputersToProcess/DevicesToDeployOpenHardwareMonitor.sql",
+                    "SQL/ComputersToProcess/RecentlyStarted_WithHyperVmonitoring.sql",
+                    "SQL/ComputersToProcess/RecentlyStarted_WithLogonsMonitoring.sql",
+                    "SQL/ComputersToProcess/RecentlyStarted_WithOpenHardwareMonitor.sql",
+                    "SQL/DataModification/InsertDataifnotExist.sql",
+                    "SQL/DataModification/SET_Object_OperatingSystem_LastBoot-Time-Type.sql",
+                    "SQL/DataModification/UpdateDataTableTemplate.sql",
+                    "SQL/DataModification/UpdateDataTableTemplateWithChangeLog.sql",
+                    "SQL/DataModification/UpdateInventoryTable.sql",
+                    "SQL/ProcessCoordinator/GetProcessCoordinatorSleepTime.sql",
+                    "SQL/ProcessCoordinator/LastExecution.sql",
+                    "SQL/ProcessCoordinator/LastInstancePID.sql",
+                    "SQL/RecentlyStartedProcess/RecentlyStarted_ActiveDevices.sql",
+                    "SQL/RecentlyStartedProcess/ScriptsToRunOnRecentlyStartedDevices.sql",
+                    "SQL/RecentlyStartedProcess/UpdateRecentlyStartedFlag.sql",
+                    "SQL/ValueUpdate/UpdateIsActive.sql",
+                    "SQL/ValueUpdate/UpdateIsOpenHardwareMonitorDeployed.sql"
                 ]
 }

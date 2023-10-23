@@ -12,7 +12,7 @@
 
     .NOTES
 
-        Version:            1.0
+        Version:            1.1
         Author:             Stanisław Horna
         Mail:               stanislawhorna@outlook.com
         GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
@@ -20,9 +20,12 @@
         ChangeLog:
 
         Date            Who                     What
+        23-10-2023      Stanisław Horna         USE statement added to unify triggering mechanism in ProcessCoordinator
 
 */
 DECLARE @HardwareMonitorIsNotDeployed AS BIT = 0
+
+USE Device_Monitoring
 
 UPDATE Inventory
 SET IsHardwareMonitorDeployed = @HardwareMonitorIsNotDeployed

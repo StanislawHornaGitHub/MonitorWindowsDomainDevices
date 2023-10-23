@@ -12,7 +12,7 @@
 
     .NOTES
 
-        Version:            1.0
+        Version:            1.1
         Author:             Stanisław Horna
         Mail:               stanislawhorna@outlook.com
         GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
@@ -20,9 +20,11 @@
         ChangeLog:
 
         Date            Who                     What
-
+        23-10-2023      Stanisław Horna         USE statement added to unify triggering mechanism in ProcessCoordinator
 */
 DECLARE @Hyper_V_monitoring AS BIT = 1
+
+USE Device_Monitoring
 
 UPDATE Inventory
 SET [MonitorHyper_V] = @Hyper_V_monitoring

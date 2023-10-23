@@ -52,7 +52,7 @@ function Test-DevicesActive {
 }
 function Invoke-Deployment {
     $Computers = Get-ComputerListToDeployment
-    [string]$UpdateIsOHMdeployed = Get-Content -Path "$SQL_QUERIES_DIRECTORY\UpdateIsOpenHardwareMonitorDeployed.sql"
+    [string]$UpdateIsOHMdeployed = Get-Content -Path "$SQL_VALUE_UPDATE_QUERIES\UpdateIsOpenHardwareMonitorDeployed.sql"
     foreach ($C in $Computers) {
         Write-host "$($C.DNSHostName)"
         try {

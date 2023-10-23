@@ -36,7 +36,7 @@ function Get-ComputerListToProcess {
         $PredefinedQuery = "ActiveDevices.sql"
     }
     try {
-        $Result = Invoke-SQLquery -FileQuery "$SQL_QUERIES_DIRECTORY/ComputersToProcess/$PredefinedQuery"
+        $Result = Invoke-SQLquery -FileQuery "$SQL_COMPUTERS_TO_PROCESS_QUERIES/$PredefinedQuery"
     }
     catch {
         throw "Get-ComputerListToProcess: $($_.Exception.Message)"

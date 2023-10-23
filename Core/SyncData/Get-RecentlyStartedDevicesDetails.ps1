@@ -32,8 +32,8 @@ New-Variable -Name "SCRIPT_NAME" -Value "Get-RecentlyStartedDeviceDetails" -Forc
 New-Variable -Name "TIMER" -Value $([System.Diagnostics.Stopwatch]::StartNew()) -Force -Scope Global
 
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
-New-Variable -Name "SQL_QUERY_SCRIPTS_TO_RUN" -Value "$SQL_QUERIES_DIRECTORY\ScriptsToRunOnRecentlyStartedDevices.sql" -Force -Scope Global -Option ReadOnly
-New-Variable -Name "SQL_QUERY_UPDATE_RECENTLY_STARTED_FLAG" -Value "$SQL_QUERIES_DIRECTORY\UpdateRecentlyStartedFlag.sql" -Force -Scope Global -Option ReadOnly
+New-Variable -Name "SQL_QUERY_SCRIPTS_TO_RUN" -Value "$SQL_RECENTLY_STARTED_QUERIES\ScriptsToRunOnRecentlyStartedDevices.sql" -Force -Scope Global -Option ReadOnly
+New-Variable -Name "SQL_QUERY_UPDATE_RECENTLY_STARTED_FLAG" -Value "$SQL_RECENTLY_STARTED_QUERIES\UpdateRecentlyStartedFlag.sql" -Force -Scope Global -Option ReadOnly
 
 New-Variable -Name "TIMEOUT_SECONDS" -Value 60 -Force -Scope Script -Option ReadOnly
 function Invoke-Main {
