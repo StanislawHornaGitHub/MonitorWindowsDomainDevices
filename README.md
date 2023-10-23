@@ -34,40 +34,7 @@ In most cases when script is run as a Background job it will create next child b
 
 When all jobs which should be run at current loop iteration were started the Process_Coordinator is starting the sleep until any script requires new invocation.
 
-```mermaid
----
-displayMode: compact
----
-    gantt
-        dateFormat HH:mm:ss
-        axisFormat %H:%M:%S
-        section Main_Process
-            Process_Coordinator        :des1, 00:00:00, 1m
-        section Scripts
-            Get-OSVersionInformation   :active, des1, 00:00:10, 20s
-            Get-DeviceHardwaredetails   :crit, des1, 00:00:20, 20s
-        section Background_Jobs
-            PC0 :active,   des1, 00:00:11, 10s
-            PC1 :active,   des1, 00:00:12, 10s
-            PC2 :active,   des1, 00:00:13, 10s
-            PC3 :active,   des1, 00:00:14, 10s
-            PC4 :active,   des1, 00:00:15, 10s
-            PC5 :active,   des1, 00:00:16, 10s
-            PC6 :active,   des1, 00:00:17, 10s
-            PC7 :active,   des1, 00:00:18, 10s
-            PC8 :active,   des1, 00:00:19, 10s
-            PC9 :active,   des1, 00:00:20, 10s
-            PC0 :crit,   des1, 00:00:22, 10s
-            PC1 :crit,   des1, 00:00:23, 10s
-            PC2 :crit,   des1, 00:00:24, 10s
-            PC3 :crit,   des1, 00:00:25, 10s
-            PC4 :crit,   des1, 00:00:26, 10s
-            PC5 :crit,   des1, 00:00:27, 10s
-            PC6 :crit,   des1, 00:00:28, 10s
-            PC7 :crit,   des1, 00:00:29, 10s
-            PC8 :crit,   des1, 00:00:30, 10s
-            PC9 :crit,   des1, 00:00:31, 10s
-```
+For more details about Process_Coordinator.ps1 operations read [Description](/Docs/Process_Coordinator.md).
 
 # Data model
 
