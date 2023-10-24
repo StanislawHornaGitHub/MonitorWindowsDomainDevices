@@ -57,7 +57,7 @@
 
 .NOTES
 
-    Version:            1.0
+    Version:            1.1
     Author:             Stanisław Horna
     Mail:               stanislawhorna@outlook.com
     GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
@@ -65,6 +65,7 @@
     ChangeLog:
 
     Date            Who                     What
+    24-10-2023      Stanisław Horna         Components of Row_ID modified. IPv6 addresses excluded.
 
 #>
 param(
@@ -137,7 +138,7 @@ function Start-CollectingNetAdapterPropertiesAsJob {
                         'MediaType'            = $_.MediaType
                         'PhysicalMediaType'    = $_.PhysicalMediaType
                         'VlanID'               = $_.VlanID
-                        'Row_ID'               = "$ComputerName$($_.ifIndex)$($_.MacAddress)"
+                        'Row_ID'               = "$ComputerName$($_.MacAddress)$($_.InterfaceDescription)"
                     }
 
                     $Output.Object_NetworkAdapters.Add($adapterResult) | Out-Null
@@ -145,18 +146,20 @@ function Start-CollectingNetAdapterPropertiesAsJob {
                     ## IP Addresses Section ##
                     ##########################                  
                     try {
-                        $(Get-NetIPAddress -ifIndex $adapterResult.ifIndex -ErrorAction Stop) | ForEach-Object {
+                        $(Get-NetIPAddress -ifIndex $adapterResult.ifIndex -AddressFamily IPv4 -ErrorAction Stop) | ForEach-Object {
                             $ipResult = [pscustomobject]@{
                                 'DNSHostName'   = $ComputerName
                                 'ifIndex'       = $_.InterfaceIndex
                                 'AddressFamily' = $_.AddressFamily
                                 'IPAddress'     = $_.IPAddress
                                 'PrefixLength'  = $_.PrefixLength
+                                'SuffixOrigin'  = $_.SuffixOrigin
                                 'AddressState'  = $_.AddressState
-                                'Row_ID'        = "$ComputerName$($_.InterfaceIndex)$($_.IPAddress)"
+                                'Row_ID'        = "$ComputerName$($_.InterfaceIndex)$($_.AddressFamily)"
                             }
                             # Replace address state code with human readable string
                             $ipResult.AddressState = $ipResult.AddressState.ToString()
+                            $ipResult.SuffixOrigin = $ipResult.SuffixOrigin.ToString()
                             $Output.Object_NetworkAdaptersIPaddresses.Add($ipResult) | Out-Null
                         }
                     }
@@ -165,8 +168,8 @@ function Start-CollectingNetAdapterPropertiesAsJob {
                     ## Default Gateways Section ##
                     ##############################
                     try {
-                        $(Get-NetRoute -InterfaceIndex $adapterResult.ifIndex -ErrorAction Stop) | `
-                            Where-Object { $_.DestinationPrefix -eq "0.0.0.0/0" } | ForEach-Object {
+                        $(Get-NetRoute -InterfaceIndex $adapterResult.ifIndex -AddressFamily IPv4 -ErrorAction Stop) | `
+                            Where-Object { ($_.DestinationPrefix -eq "0.0.0.0/0") } | ForEach-Object {
                             $GWresult = [pscustomobject]@{
                                 'DNSHostName'       = $ComputerName
                                 'ifIndex'           = $_.ifIndex
@@ -175,7 +178,7 @@ function Start-CollectingNetAdapterPropertiesAsJob {
                                 'NextHop'           = $_.NextHop
                                 'InterfaceMetric'   = $_.InterfaceMetric
                                 'RouteMetric'       = $_.RouteMetric
-                                'Row_ID'            = "$ComputerName$($_.InterfaceIndex)$($_.NextHop)"
+                                'Row_ID'            = "$ComputerName$($_.InterfaceIndex)$($_.AddressFamily)$($_.RouteMetric)"
                             }
                             $Output.Object_NetworkAdaptersDefaultGateways.Add($GWresult) | Out-Null
                         }
@@ -185,7 +188,7 @@ function Start-CollectingNetAdapterPropertiesAsJob {
                     ## DNS Servers Section ##
                     #########################
                     try {
-                        $(Get-DnsClientServerAddress -InterfaceIndex $adapterResult.ifIndex -ErrorAction Stop) | ForEach-Object {
+                        $(Get-DnsClientServerAddress -InterfaceIndex $adapterResult.ifIndex -AddressFamily IPv4 -ErrorAction Stop) | ForEach-Object {
                             for ($i = 0; $i -lt $_.ServerAddresses.Count; $i++) {
                                 $DNSresult = $null
                                 $DNSresult = [pscustomobject]@{
@@ -194,7 +197,7 @@ function Start-CollectingNetAdapterPropertiesAsJob {
                                     'AddressFamily'  = $_.AddressFamily
                                     'DNSServer'      = $($_.ServerAddresses[$i])
                                     'DNSServerOrder' = $($i + 1)
-                                    'Row_ID'         = "$ComputerName$($_.InterfaceIndex)$($_.ServerAddresses[$i])"
+                                    'Row_ID'         = "$ComputerName$($_.InterfaceIndex)$($i + 1)$($_.AddressFamily)"
                                 }
                                 # Replace address family code with human readable string (Windows bug, the default one does not work)
                                 switch (($DNSresult.AddressFamily)) {
