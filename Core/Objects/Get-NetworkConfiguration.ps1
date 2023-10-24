@@ -147,14 +147,13 @@ function Start-CollectingNetAdapterPropertiesAsJob {
                     try {
                         $(Get-NetIPAddress -ifIndex $adapterResult.ifIndex -ErrorAction Stop) | ForEach-Object {
                             $ipResult = [pscustomobject]@{
-                                'DNSHostName'    = $ComputerName
-                                'InterfaceAlias' = $_.InterfaceAlias
-                                'ifIndex'        = $_.InterfaceIndex
-                                'AddressFamily'  = $_.AddressFamily
-                                'IPAddress'      = $_.IPAddress
-                                'PrefixLength'   = $_.PrefixLength
-                                'AddressState'   = $_.AddressState
-                                'Row_ID'         = "$ComputerName$($_.InterfaceIndex)$($_.IPAddress)"
+                                'DNSHostName'   = $ComputerName
+                                'ifIndex'       = $_.InterfaceIndex
+                                'AddressFamily' = $_.AddressFamily
+                                'IPAddress'     = $_.IPAddress
+                                'PrefixLength'  = $_.PrefixLength
+                                'AddressState'  = $_.AddressState
+                                'Row_ID'        = "$ComputerName$($_.InterfaceIndex)$($_.IPAddress)"
                             }
                             # Replace address state code with human readable string
                             $ipResult.AddressState = $ipResult.AddressState.ToString()
@@ -170,7 +169,6 @@ function Start-CollectingNetAdapterPropertiesAsJob {
                             Where-Object { $_.DestinationPrefix -eq "0.0.0.0/0" } | ForEach-Object {
                             $GWresult = [pscustomobject]@{
                                 'DNSHostName'       = $ComputerName
-                                'InterfaceAlias'    = $_.InterfaceAlias
                                 'ifIndex'           = $_.ifIndex
                                 'AddressFamily'     = $_.AddressFamily
                                 'DestinationPrefix' = $_.DestinationPrefix
@@ -192,7 +190,6 @@ function Start-CollectingNetAdapterPropertiesAsJob {
                                 $DNSresult = $null
                                 $DNSresult = [pscustomobject]@{
                                     'DNSHostName'    = $ComputerName
-                                    'InterfaceAlias' = $_.InterfaceAlias
                                     'ifIndex'        = $_.InterfaceIndex
                                     'AddressFamily'  = $_.AddressFamily
                                     'DNSServer'      = $($_.ServerAddresses[$i])
