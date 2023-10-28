@@ -180,6 +180,7 @@ function Get-OpenHardwareMonitorFromJob {
                 'PowerConsumption_Max'     = $null
             }
             try {
+                $Output = $null
                 $Output = Receive-Job -Name $jobName -ErrorAction Stop
             }
             catch {
