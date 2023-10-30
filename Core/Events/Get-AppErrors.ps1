@@ -112,7 +112,7 @@ function Get-AppErrorEventsFromJob {
                 $Output = Receive-Job -Name $jobName -ErrorAction Stop
             }
             catch {
-                Write-Joblog -Message "$jobname - $($_.Exception.Message)"
+                Write-Joblog -Message "$jobname;$($_.Exception.Message)"
             }
             $Output | ForEach-Object {
                 try {

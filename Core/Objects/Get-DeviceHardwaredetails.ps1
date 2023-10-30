@@ -136,7 +136,7 @@ function Get-DeviceDetails {
                 $Output = Receive-Job -Name $jobName -ErrorAction Stop
             }
             catch {
-                Write-Joblog -Message "$jobname - $($_.Exception.Message)"
+                Write-Joblog -Message "$jobname;$($_.Exception.Message)"
                 $Script:EXIT_CODE = 1 
             }
             $Entry = Get-DeviceModel -Entry $Entry -Output $Output

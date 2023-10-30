@@ -193,7 +193,7 @@ function Get-WindowsVersionFromJob {
                 $Output = Receive-Job -Name $jobName -ErrorAction Stop
             }
             catch {
-                Write-Joblog -Message "$jobname - $($_.Exception.Message)"
+                Write-Joblog -Message "$jobname;$($_.Exception.Message)"
                 $Script:EXIT_CODE = 1 
             }
             $Entry.'CurrentlyLoggedOn' = $($Output.'WMI'.'CurrentlyLoggedOn')

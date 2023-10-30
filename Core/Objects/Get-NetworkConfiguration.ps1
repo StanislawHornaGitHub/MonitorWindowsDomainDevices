@@ -240,7 +240,7 @@ function Get-NetAdapterPropertiesFromJob {
                 $success = $true
             }
             catch {
-                Write-Joblog -Message "$jobname - $($_.Exception.Message)"
+                Write-Joblog -Message "$jobname;$($_.Exception.Message)"
             }
             if ($success -eq $true) {
                 foreach ($t in $Output.Keys) {
@@ -275,7 +275,7 @@ function Get-NetAdapterPropertiesFromJob {
                                 Invoke-SQLquery -Query $updateQuery 
                             }
                             catch {
-                                Write-Joblog -Message "$jobname - $($_.Exception.Message)"
+                                Write-Joblog -Message "$jobname;$($_.Exception.Message)"
                                 $updateQuery
                             }
                         }

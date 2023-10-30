@@ -32,7 +32,7 @@ function Remove-RemainingJobs {
     $remainingJobs = Get-Job
     if ($null -ne $remainingJobs) {
         $remainingJobs | Remove-Job -Force
-        Write-Joblog -Message "Background jobs were running longer than REMOTE_CONNECTION_TIMEOUT_SECONDS ($REMOTE_CONNECTION_TIMEOUT_SECONDS)"
+        Write-Joblog -Message "Background jobs were running longer than REMOTE_CONNECTION_TIMEOUT_SECONDS ($REMOTE_CONNECTION_TIMEOUT_SECONDS). JobNames: $($remainingJobs.Name -join ", ")"
     }
 }
 function Get-DevicesList {

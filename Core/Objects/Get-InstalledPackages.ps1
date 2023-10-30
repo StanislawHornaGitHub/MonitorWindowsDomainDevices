@@ -159,7 +159,7 @@ function Get-DevicePackagesFromJob {
                 $Output = Receive-Job -Name $jobName -ErrorAction Stop
             }
             catch {
-                Write-Joblog -Message "$jobname - $($_.Exception.Message)"
+                Write-Joblog -Message "$jobname;$($_.Exception.Message)"
                 $Script:EXIT_CODE = 1 
             }
                             # Add LastUpdate date
@@ -176,7 +176,7 @@ function Get-DevicePackagesFromJob {
                         Invoke-SQLquery -Query $updateQuery 
                     }
                     catch {
-                        Write-Joblog -Message "$jobname - $($_.Exception.Message)"
+                        Write-Joblog -Message "$jobname;$($_.Exception.Message)"
                         $updateQuery
                     }
                 }

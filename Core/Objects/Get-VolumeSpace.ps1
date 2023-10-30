@@ -110,7 +110,7 @@ function Get-VolumeDetails {
                 $Output = Receive-Job -Name $jobName -ErrorAction Stop
             }
             catch {
-                Write-Joblog -Message "$jobname - $($_.Exception.Message)"
+                Write-Joblog -Message "$jobname;$($_.Exception.Message)"
                 $Script:EXIT_CODE = 1 
             }
             foreach ($partition in $Output.Volumes) {

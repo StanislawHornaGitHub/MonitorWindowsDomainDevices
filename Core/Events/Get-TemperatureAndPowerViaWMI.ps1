@@ -184,7 +184,7 @@ function Get-OpenHardwareMonitorFromJob {
                 $Output = Receive-Job -Name $jobName -ErrorAction Stop
             }
             catch {
-                Write-Joblog -Message "$jobname - $($_.Exception.Message)"
+                Write-Joblog -Message "$jobname;$($_.Exception.Message)"
                 $Script:EXIT_CODE = 1 
             }
             $Entry.CPU_Temperature_Current = $Output.'Temperature_CPU'.Current

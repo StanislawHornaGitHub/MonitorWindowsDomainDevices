@@ -231,7 +231,7 @@ function Get-VMpropertiesFromJob {
                 $success = $true
             }
             catch {
-                Write-Joblog -Message "$jobname - $($_.Exception.Message)"
+                Write-Joblog -Message "$jobname;$($_.Exception.Message)"
             }
             if ($success -eq $true) {
                 foreach ($T in $Output.Keys) {

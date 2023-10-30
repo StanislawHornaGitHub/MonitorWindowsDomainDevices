@@ -137,7 +137,7 @@ function Get-BootEventsFromJob {
                 $Output = Receive-Job -Name $jobName -ErrorAction Stop
             }
             catch {
-                Write-Joblog -Message "$jobname - $($_.Exception.Message)"
+                Write-Joblog -Message "$jobname;$($_.Exception.Message)"
             }
             $Output | ForEach-Object {
                 $_.TimeStamp = $_.TimeStamp.ToString("yyyy-MM-dd HH:mm:ss\.fff")
