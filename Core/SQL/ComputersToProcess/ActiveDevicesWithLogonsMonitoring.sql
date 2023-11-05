@@ -19,14 +19,15 @@
         ChangeLog:
 
         Date            Who                     What
-
+        05-11-2023      Stanisław Horna         LastEventTimeAppErrors column added
 */
 DECLARE @DeviceIsActive AS BIT = 1
 DECLARE @LogonsMonitoring AS BIT = 1
 
 SELECT
     DNSHostName,
-    IPaddress 
+    IPaddress,
+    LastEventTimeAppErrors
 FROM Inventory
 WHERE isActive = @DeviceIsActive AND
       MonitorLogons = @LogonsMonitoring

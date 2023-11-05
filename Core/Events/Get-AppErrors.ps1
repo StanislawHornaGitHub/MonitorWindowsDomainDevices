@@ -27,7 +27,7 @@
 
 .NOTES
 
-    Version:            1.0
+    Version:            1.3
     Author:             Stanisław Horna
     Mail:               stanislawhorna@outlook.com
     GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
@@ -37,6 +37,8 @@
     Date            Who                     What
     29-09-2023      Stanisław Horna         Support for RunOutOfSchedule mechanizm added
     30-09-2023      Stanisław Horna         More accurate number of processed devices in Joblog
+    05-11-2023      Stanisław Horna         FilterxPath replaced with Filterhashtable and retrieving events is limited,
+                                                to those occured after last app error event stored in SQL DB.
 #>
 param(
     [bool]$RunOutOfSchedule = $false,
@@ -51,9 +53,11 @@ New-Variable -Name "TIMER" -Value $([System.Diagnostics.Stopwatch]::StartNew()) 
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 New-Variable -Name "SQL_TABLE_TO_UPDATE" -Value "Event_AppErrors" -Force -Scope Script -Option ReadOnly
 
-New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 120 -Force -Scope Script -Option ReadOnly
-New-Variable -Name "FILTER_X_PATH" -Value "*[System[(Level=1  or Level=2)]]" -Force -Scope Script -Option ReadOnly
-
+New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 900 -Force -Scope Script -Option ReadOnly
+New-Variable -Name "FILETR_HASHTABLE" -Value @{
+    LogName = 'Application'
+    Level   = @(1, 2)
+} -Force -Scope Script -Option ReadOnly
 function Invoke-Main {
     Write-Joblog
     try {
@@ -77,16 +81,17 @@ function Start-CollectingAppErrorEventsAsJob {
         Start-Job -Name "$($C.DNSHostName)" -ScriptBlock {
             param(
                 $ComputerName,
-                $FILTER_X_PATH
+                $FilterHash,
+                $LastEventTimeAppErrors
             )
+            $FilterHash.Add("StartTime",$LastEventTimeAppErrors)
             $Output = Invoke-Command -ComputerName $ComputerName -ScriptBlock {
                 param(
                     $ComputerName,
-                    $FILTER_X_PATH
+                    $FilterHash
                 )
                 try {
-                    $Events = Get-WinEvent -LogName Application `
-                        -FilterXPath $FILTER_X_PATH `
+                    $Events = Get-WinEvent -FilterHashtable $FilterHash `
                         -ErrorAction Stop | `
                         Select-Object TimeCreated, ID, Level, ProviderName, Message
                 }
@@ -96,9 +101,9 @@ function Start-CollectingAppErrorEventsAsJob {
                 $Events | Add-Member -MemberType NoteProperty -Name "DNSHostName" -Value $ComputerName
                 $Events | Add-Member -MemberType NoteProperty -Name "Row_ID" -Value ""
                 return $Events
-            } -ArgumentList $ComputerName, $FILTER_X_PATH
+            } -ArgumentList $ComputerName, $FilterHash
             return $Output
-        } -ArgumentList $($C.DNSHostName), $FILTER_X_PATH | Out-Null
+        } -ArgumentList $($C.DNSHostName), $FILETR_HASHTABLE, $($C.LastEventTimeAppErrors) | Out-Null
     }
 }
 function Get-AppErrorEventsFromJob {
@@ -132,7 +137,7 @@ function Get-AppErrorEventsFromJob {
             }
             else {
                 foreach ($Entry in $Output) {
-                        $insertQuery = Get-SQLifDataNotExistInsertQuery -Entry $Entry -TableName $SQL_TABLE_TO_UPDATE -sqlPrimaryKey "Row_ID"
+                    $insertQuery = Get-SQLifDataNotExistInsertQuery -Entry $Entry -TableName $SQL_TABLE_TO_UPDATE -sqlPrimaryKey "Row_ID"
                     try {
                         Invoke-SQLquery -Query $insertQuery 
                     }
