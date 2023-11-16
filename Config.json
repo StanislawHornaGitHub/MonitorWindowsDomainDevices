@@ -77,6 +77,9 @@
         },
         "GetLastAppErrorEventDateTime.sql": {
             "Refresh_Interval_in_seconds": 1800
+        },
+        "GetLastBootEventEventDateTime.sql": {
+            "Refresh_Interval_in_seconds": 1800
         }
     },
     "Modules": [

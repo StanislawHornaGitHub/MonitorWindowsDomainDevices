@@ -13,7 +13,7 @@
 
     .NOTES
 
-        Version:            1.0
+        Version:            1.1
         Author:             Stanisław Horna
         Mail:               stanislawhorna@outlook.com
         GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
@@ -21,14 +21,15 @@
         ChangeLog:
 
         Date            Who                     What
-
+        16-11-2023      Stanisław Horna         LastEventTimeBootEvents column added
 */
 DECLARE @DeviceIsActive AS BIT = 1
 DECLARE @RecentlyStarted AS BIT = 1
 
 SELECT
     DNSHostName,
-    IPaddress 
+    IPaddress,
+    LastEventTimeBootEvents
 FROM Inventory
 WHERE isActive = @DeviceIsActive AND 
       RecentlyStarted = @RecentlyStarted
