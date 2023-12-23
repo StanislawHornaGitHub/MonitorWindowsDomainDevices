@@ -33,7 +33,7 @@
 
 .NOTES
 
-    Version:            1.0
+    Version:            1.3
     Author:             Stanisław Horna
     Mail:               stanislawhorna@outlook.com
     GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
@@ -43,6 +43,7 @@
     Date            Who                     What
     29-09-2023      Stanisław Horna         Support for RunOutOfSchedule mechanizm added
     30-09-2023      Stanisław Horna         More accurate number of processed devices in Joblog
+    23-12-2023      Stanisław Horna         Retrieving events is limited, to those occured after last Logon event stored in SQL DB.
 #>
 param(
     [bool]$RunOutOfSchedule = $false,
@@ -61,6 +62,7 @@ New-Variable -Name "SQL_TABLE_TO_UPDATE" -Value "Event_Logons" -Force -Scope Scr
 New-Variable -Name "REMOTE_CONNECTION_TIMEOUT_SECONDS" -Value 90 -Force -Scope Script -Option ReadOnly
 New-Variable -Name "FILTER_X_PATH" -Value "
 *[System[EventID=4624]]  and  
+*[System[TimeCreated[@SystemTime > 'TIME_CREATED_TO_REPLACE.345Z']]]  and  
 *[EventData[Data[@Name='TargetUserName']!='dev_monitor']] and 
 *[EventData[Data[@Name='LogonGuid']!='00000000-0000-0000-0000-000000000000']] and
 *[EventData[Data[@Name='TargetUserSid']!='S-1-5-18']] and
@@ -96,8 +98,16 @@ function Start-CollectingLogonEventsAsJob {
         Start-Job -Name "$($C.DNSHostName)" -ScriptBlock {
             param(
                 $ComputerName,
-                $FILTER_X_PATH
+                $FILTER_X_PATH,
+                $LastEventLogonTime
             )
+            try {
+                $LastEventLogonTime = $LastEventLogonTime.ToString("yyyy-MM-ddTHH:mm:ss")
+            }
+            catch {
+                $LastEventLogonTime = $(Get-Date).AddYears(-1).ToString("yyyy-MM-ddTHH:mm:ss")
+            }
+            
             $Output = Invoke-Command -ComputerName $ComputerName -ScriptBlock {
                 param(
                     $ComputerName,
@@ -129,9 +139,9 @@ function Start-CollectingLogonEventsAsJob {
                     $Output.Add($Entry) | Out-Null
                 }
                 return $Output
-            } -ArgumentList $ComputerName, $FILTER_X_PATH
+            } -ArgumentList $ComputerName, $($FILTER_X_PATH.Replace("TIME_CREATED_TO_REPLACE",$LastEventLogonTime))
             return $Output
-        } -ArgumentList $($C.DNSHostName), $FILTER_X_PATH | Out-Null
+        } -ArgumentList $($C.DNSHostName), $FILTER_X_PATH, $($C.LastEventTimeLogon) | Out-Null
     }
 }
 function Get-LogonEventsFromJob {

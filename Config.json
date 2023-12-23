@@ -75,7 +75,7 @@
         "CalculateSubScriptAverageProcessingTimeForLastDay.sql": {
             "Refresh_Interval_in_seconds": 14400
         },
-        "GetLastAppErrorEventDateTime.sql": {
+        "GetLastEventDateTimeToInventoryTable.sql": {
             "Refresh_Interval_in_seconds": 1800
         },
         "GetLastBootEventEventDateTime.sql": {
