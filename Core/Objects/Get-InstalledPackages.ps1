@@ -27,7 +27,7 @@
 
 .NOTES
 
-    Version:            1.0
+    Version:            1.3
     Author:             Stanisław Horna
     Mail:               stanislawhorna@outlook.com
     GitHub Repository:  https://github.com/StanislawHornaGitHub/MonitorWindowsDomainDevices
@@ -37,6 +37,7 @@
     Date            Who                     What
     29-09-2023      Stanisław Horna         Support for RunOutOfSchedule mechanizm added
     30-09-2023      Stanisław Horna         More accurate number of processed devices in Joblog
+    23-12-2023      Stanisław Horna         New char excluded from row ID
 #>
 param(
     [bool]$RunOutOfSchedule = $false,
@@ -142,6 +143,7 @@ function Start-CollectingDevicePackagesAsJob {
                 $_.Row_ID = $_.Row_ID.Replace(",", "") 
                 $_.Row_ID = $_.Row_ID.Replace("\", "-")
                 $_.Row_ID = $_.Row_ID.Replace("/", "-")
+                $_.Row_ID = $_.Row_ID.Replace("™", "")
             }
             return $Output
         } -ArgumentList $($C.DNSHostName), $INPUT_HASH | Out-Null
