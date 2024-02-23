@@ -143,7 +143,6 @@ function Start-CollectingDevicePackagesAsJob {
                 $_.Row_ID = $_.Row_ID.Replace(",", "") 
                 $_.Row_ID = $_.Row_ID.Replace("\", "-")
                 $_.Row_ID = $_.Row_ID.Replace("/", "-")
-                $_.Row_ID = $_.Row_ID.Replace("™", "")
             }
             return $Output
         } -ArgumentList $($C.DNSHostName), $INPUT_HASH | Out-Null
