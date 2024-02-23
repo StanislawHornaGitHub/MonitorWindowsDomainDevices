@@ -29,11 +29,18 @@
     Date            Who                     What
 
 #>
+param(
+    [bool]$RunOutOfSchedule = $false,
+    [switch]$DEBUG
+)
+
 Import-Module "./Core/Import-AllModules.psm1"
 New-Variable -Name "EXIT_CODE" -Value 0 -Force -Scope Script
 
 New-Variable -Name 'DEPLOYMENT_SERVER_FOLDER_NAME_TO_COPY' -Value "OpenHardwareMonitor" -Force -Scope Script
-New-Variable -Name "SQL_DEVICES_TO_DEPLOYMENT" -Value "$SQL_QUERIES_DIRECTORY\DevicesToDeployOpenHardwareMonitor.sql"
+New-Variable -Name "QUERY_TO_RUN_WITH_SCHEDULE" -Value "DevicesToDeployOpenHardwareMonitor.sql" -Force -Scope Script
+New-Variable -Name "QUERY_TO_RUN_OUTOF_SCHEDULE" -Value "DevicesToDeployOpenHardwareMonitor.sql" -Force -Scope Script
+
 function Invoke-Main {
     try {
         Test-DevicesActive
@@ -51,7 +58,9 @@ function Test-DevicesActive {
     & ".\Core\SyncData\Test-ActiveDevices.ps1"
 }
 function Invoke-Deployment {
-    $Computers = Get-ComputerListToDeployment
+    $Computers = Get-DevicesList -RunOutOfSchedule $RunOutOfSchedule `
+    -QueryWithSchedule $QUERY_TO_RUN_WITH_SCHEDULE `
+    -QueryOutOfSchedule $QUERY_TO_RUN_OUTOF_SCHEDULE
     [string]$UpdateIsOHMdeployed = Get-Content -Path "$SQL_VALUE_UPDATE_QUERIES\UpdateIsOpenHardwareMonitorDeployed.sql"
     foreach ($C in $Computers) {
         Write-host "$($C.DNSHostName)"
