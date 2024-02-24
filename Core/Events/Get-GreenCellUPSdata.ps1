@@ -17,9 +17,11 @@
     TimeStamp       - time of the measurement                                                                                                                                                                 
     inputVoltage    - UPS input voltage
     outputVoltage   - UPS output voltage
-    inputFrequency  - UPS input frequency                                                                                                                                                             load           : 6                                                                                                                                                                                    batteryVoltage : 27,4                                                                                                                                                                                 
+    inputFrequency  - UPS input frequency                                                                                                                                                             
+    load            - UPS load                                                                                                                                                                             
+    batteryVoltage  - UPS Battery Voltage                                                                                                                                                                            
     batteryLevel    - UPS Battery level                                                                                                                                                           
-    batteryLow      - UPS Battery low flag
+    batteryLow      - UPS Battery low fla3g
     offline         - UPS Offline flag
     active          - UPS Active flag
     connected       - UPS Connected flag
@@ -57,13 +59,17 @@ New-Variable -Name 'COLUMNS_TO_DB' -Value @("inputVoltage", "outputVoltage", "in
 function Invoke-Main {
     Write-Joblog
     try {
+        # Get list of active devices with connected GC UPS 
         $Computer = Get-DevicesList -RunOutOfSchedule $RunOutOfSchedule `
             -QueryWithSchedule $QUERY_TO_RUN_WITH_SCHEDULE `
             -QueryOutOfSchedule $QUERY_TO_RUN_OUTOF_SCHEDULE
         foreach ($entry in $Computer) {
             try {
+                # log in and get access token
                 $token = Get-AccessToken -SecretsEntry $entry
+                # get current values using open session and access token
                 $data = Get-CurrentValues -SecretsEntry $entry -SessionAndToken $token
+                # insert data to SQL
                 Write-DataToSQL -Data $data
             }
             catch {
@@ -87,8 +93,10 @@ function Get-AccessToken {
     param(
         $SecretsEntry
     )
+    # Init session 
     $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
     $session.UserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0"
+    # Invoke web request to login and get access token
     $AuthResponse = Invoke-WebRequest -Uri $($API_URL_LOGIN.Replace("DNS_HOST_NAME_TO_REPLACE", $SecretsEntry.DNSHostName))  `
         -Method "POST" `
         -WebSession $session `
@@ -107,11 +115,14 @@ function Get-CurrentValues {
         $SecretsEntry,
         $SessionAndToken
     )
+    # Invoke web request to get current values
     $ValueResponse = Invoke-WebRequest -Uri $API_URL_GET_STATUS.Replace("DNS_HOST_NAME_TO_REPLACE", $SecretsEntry.DNSHostName) `
         -WebSession $SessionAndToken.session `
         -Headers  $(Get-ValuesHeaders -DNSHostName $SecretsEntry.DNSHostName -Token $SessionAndToken.token) `
         -UseBasicParsing
+    # convert JSON output to PS object
     $Result = $($ValueResponse.Content | ConvertFrom-Json | Select-Object $COLUMNS_TO_DB)
+    # Add currently proccesing device name and timestamp of measurement
     $Result | Add-Member -MemberType NoteProperty -Name "DNSHostName" -Value $SecretsEntry.DNSHostName
     $Result | Add-Member -MemberType NoteProperty -Name "TimeStamp" -Value (Get-Date).ToString("yyyy-MM-dd HH:mm:ss.fff")
     return [pscustomobject]$Result
