@@ -1,119 +1,124 @@
 {
-    "Commands":  {
-                     "Stop_Process_Coordinator":  0,
-                     "Stop_Process_and_Disable_Task_Scheduler":  0
-                 },
-    "Objects":  {
-                    "Get-DeviceHardwareDetails.ps1":  {
-                                                          "Refresh_Interval_in_seconds":  3600,
-                                                          "RunOnceDeviceBecomeActive":  1
-                                                      },
-                    "Get-OSVersionInformation.ps1":  {
-                                                         "Refresh_Interval_in_seconds":  1800,
-                                                         "RunOnceDeviceBecomeActive":  1
-                                                     },
-                    "Get-VolumeSpace.ps1":  {
-                                                "Refresh_Interval_in_seconds":  1800,
-                                                "RunOnceDeviceBecomeActive":  1
-                                            },
-                    "Get-InstalledPackages.ps1":  {
-                                                      "Refresh_Interval_in_seconds":  1800,
-                                                      "RunOnceDeviceBecomeActive":  0
-                                                  },
-                    "Get-Hyper-Vmachines.ps1":  {
-                                                    "Refresh_Interval_in_seconds":  3600,
-                                                    "RunOnceDeviceBecomeActive":  1
-                                                },
-                    "Get-NetworkConfiguration.ps1":  {
-                                                         "Refresh_Interval_in_seconds":  3600,
-                                                         "RunOnceDeviceBecomeActive":  1
-                                                     }
-                },
-    "Events":  {
-                   "Get-ResourceConsumption.ps1":  {
-                                                       "Refresh_Interval_in_seconds":  60,
-                                                       "RunOnceDeviceBecomeActive":  0
-                                                   },
-                   "Get-TemperatureAndPowerViaWMI.ps1":  {
-                                                             "Refresh_Interval_in_seconds":  60,
-                                                             "RunOnceDeviceBecomeActive":  0
-                                                         },
-                   "Get-UserLogons.ps1":  {
-                                              "Refresh_Interval_in_seconds":  300,
-                                              "RunOnceDeviceBecomeActive":  1
-                                          },
-                   "Get-BootEvents.ps1":  {
-                                              "Refresh_Interval_in_seconds":  3600,
-                                              "RunOnceDeviceBecomeActive":  0
-                                          },
-                   "Get-AppErrors.ps1":  {
-                                             "Refresh_Interval_in_seconds":  3600,
-                                             "RunOnceDeviceBecomeActive":  0
-                                         },
-                   "Get-NetworkSpeedTest.ps1":  {
-                                                    "Refresh_Interval_in_seconds":  3600,
-                                                    "RunOnceDeviceBecomeActive":  0
-                                                }
-               },
-    "SyncData":  {
-                     "Get-DeviceInventoryToMonitor.ps1":  {
-                                                              "Refresh_Interval_in_seconds":  60,
-                                                              "RunOnceDeviceBecomeActive":  0
-                                                          },
-                     "Test-ActiveDevices.ps1":  {
-                                                    "Refresh_Interval_in_seconds":  0,
-                                                    "RunOnceDeviceBecomeActive":  0
-                                                }
-                 },
-    "SQL":  {
-                "ExcludeVMfromHyper-Vmonitoring.sql":  {
-                                                           "Refresh_Interval_in_seconds":  28800
-                                                       },
-                "ExcludeVMfromTemperatureMonitoring.sql":  {
-                                                               "Refresh_Interval_in_seconds":  28800
-                                                           },
-                "CalculateSubScriptAverageProcessingTimeForLastDay.sql":  {
-                                                                              "Refresh_Interval_in_seconds":  14400
-                                                                          },
-                "GetLastEventDateTimeToInventoryTable.sql":  {
-                                                                 "Refresh_Interval_in_seconds":  1800
-                                                             },
-                "GetLastBootEventEventDateTime.sql":  {
-                                                          "Refresh_Interval_in_seconds":  1800
-                                                      }
-            },
-    "Modules":  [
-                    "Import-AllModules.psm1",
-                    "Functions/FunctionProcessCoordinator.psm1",
-                    "Functions/Logging.psm1",
-                    "Functions/RetrievingData.psm1",
-                    "Functions/SQL.psm1",
-                    "Functions/Utility.psm1",
-                    "Variables/VariableDeployment.psm1",
-                    "Variables/VariableEnvironment.psm1",
-                    "Variables/VariableLog.psm1",
-                    "Variables/VariableProcessCoordinator.psm1",
-                    "Variables/VariableSQL.psm1",
-                    "SQL/ComputersToProcess/ActiveDevices.sql",
-                    "SQL/ComputersToProcess/ActiveDevicesWithHyperVmonitoring.sql",
-                    "SQL/ComputersToProcess/ActiveDevicesWithLogonsMonitoring.sql",
-                    "SQL/ComputersToProcess/ActiveDevicesWithOpenHardwareMonitor.sql",
-                    "SQL/ComputersToProcess/DevicesToDeployOpenHardwareMonitor.sql",
-                    "SQL/ComputersToProcess/RecentlyStarted_ActiveDevices.sql",
-                    "SQL/ComputersToProcess/RecentlyStarted_WithHyperVmonitoring.sql",
-                    "SQL/ComputersToProcess/RecentlyStarted_WithLogonsMonitoring.sql",
-                    "SQL/ComputersToProcess/RecentlyStarted_WithOpenHardwareMonitor.sql",
-                    "SQL/DataModification/InsertDataifnotExist.sql",
-                    "SQL/DataModification/SET_Object_OperatingSystem_LastBoot-Time-Type.sql",
-                    "SQL/DataModification/UpdateDataTableTemplate.sql",
-                    "SQL/DataModification/UpdateDataTableTemplateWithChangeLog.sql",
-                    "SQL/DataModification/UpdateInventoryTable.sql",
-                    "SQL/ProcessCoordinator/GetProcessCoordinatorSleepTime.sql",
-                    "SQL/ProcessCoordinator/LastExecution.sql",
-                    "SQL/ProcessCoordinator/LastInstancePID.sql",
-                    "SQL/RecentlyStartedProcess/ScriptsToRunOnRecentlyStartedDevices.sql",
-                    "SQL/RecentlyStartedProcess/UpdateRecentlyStartedFlag.sql",
-                    "SQL/ValueUpdate/UpdateIsActive.sql",
-                    "SQL/ValueUpdate/UpdateIsOpenHardwareMonitorDeployed.sql"
-                ]
+    "Commands": {
+        "Stop_Process_Coordinator": 0,
+        "Stop_Process_and_Disable_Task_Scheduler": 0
+    },
+    "Objects": {
+        "Get-DeviceHardwareDetails.ps1": {
+            "Refresh_Interval_in_seconds": 3600,
+            "RunOnceDeviceBecomeActive": 1
+        },
+        "Get-OSVersionInformation.ps1": {
+            "Refresh_Interval_in_seconds": 1800,
+            "RunOnceDeviceBecomeActive": 1
+        },
+        "Get-VolumeSpace.ps1": {
+            "Refresh_Interval_in_seconds": 1800,
+            "RunOnceDeviceBecomeActive": 1
+        },
+        "Get-InstalledPackages.ps1": {
+            "Refresh_Interval_in_seconds": 1800,
+            "RunOnceDeviceBecomeActive": 0
+        },
+        "Get-Hyper-Vmachines.ps1": {
+            "Refresh_Interval_in_seconds": 3600,
+            "RunOnceDeviceBecomeActive": 1
+        },
+        "Get-NetworkConfiguration.ps1": {
+            "Refresh_Interval_in_seconds": 3600,
+            "RunOnceDeviceBecomeActive": 1
+        }
+    },
+    "Events": {
+        "Get-ResourceConsumption.ps1": {
+            "Refresh_Interval_in_seconds": 60,
+            "RunOnceDeviceBecomeActive": 0
+        },
+        "Get-TemperatureAndPowerViaWMI.ps1": {
+            "Refresh_Interval_in_seconds": 60,
+            "RunOnceDeviceBecomeActive": 0
+        },
+        "Get-GreenCellUPSdata.ps1": {
+            "Refresh_Interval_in_seconds": 60,
+            "RunOnceDeviceBecomeActive": 0
+        },
+        "Get-UserLogons.ps1": {
+            "Refresh_Interval_in_seconds": 300,
+            "RunOnceDeviceBecomeActive": 1
+        },
+        "Get-BootEvents.ps1": {
+            "Refresh_Interval_in_seconds": 3600,
+            "RunOnceDeviceBecomeActive": 0
+        },
+        "Get-AppErrors.ps1": {
+            "Refresh_Interval_in_seconds": 3600,
+            "RunOnceDeviceBecomeActive": 0
+        },
+        "Get-NetworkSpeedTest.ps1": {
+            "Refresh_Interval_in_seconds": 3600,
+            "RunOnceDeviceBecomeActive": 0
+        }
+    },
+    "SyncData": {
+        "Get-DeviceInventoryToMonitor.ps1": {
+            "Refresh_Interval_in_seconds": 60,
+            "RunOnceDeviceBecomeActive": 0
+        },
+        "Test-ActiveDevices.ps1": {
+            "Refresh_Interval_in_seconds": 0,
+            "RunOnceDeviceBecomeActive": 0
+        }
+    },
+    "SQL": {
+        "ExcludeVMfromHyper-Vmonitoring.sql": {
+            "Refresh_Interval_in_seconds": 28800
+        },
+        "ExcludeVMfromTemperatureMonitoring.sql": {
+            "Refresh_Interval_in_seconds": 28800
+        },
+        "CalculateSubScriptAverageProcessingTimeForLastDay.sql": {
+            "Refresh_Interval_in_seconds": 14400
+        },
+        "GetLastEventDateTimeToInventoryTable.sql": {
+            "Refresh_Interval_in_seconds": 1800
+        },
+        "GetLastBootEventEventDateTime.sql": {
+            "Refresh_Interval_in_seconds": 1800
+        }
+    },
+    "Modules": [
+        "Import-AllModules.psm1",
+        "Functions/FunctionProcessCoordinator.psm1",
+        "Functions/Logging.psm1",
+        "Functions/RetrievingData.psm1",
+        "Functions/SQL.psm1",
+        "Functions/Utility.psm1",
+        "Variables/VariableDeployment.psm1",
+        "Variables/VariableEnvironment.psm1",
+        "Variables/VariableLog.psm1",
+        "Variables/VariableProcessCoordinator.psm1",
+        "Variables/VariableSQL.psm1",
+        "SQL/ComputersToProcess/ActiveDevices.sql",
+        "SQL/ComputersToProcess/ActiveDevicesWithHyperVmonitoring.sql",
+        "SQL/ComputersToProcess/ActiveDevicesWithLogonsMonitoring.sql",
+        "SQL/ComputersToProcess/ActiveDevicesWithOpenHardwareMonitor.sql",
+        "SQL/ComputersToProcess/ActiveDevicesWithGCupsConnected.sql",
+        "SQL/ComputersToProcess/DevicesToDeployOpenHardwareMonitor.sql",
+        "SQL/ComputersToProcess/RecentlyStarted_ActiveDevices.sql",
+        "SQL/ComputersToProcess/RecentlyStarted_WithHyperVmonitoring.sql",
+        "SQL/ComputersToProcess/RecentlyStarted_WithLogonsMonitoring.sql",
+        "SQL/ComputersToProcess/RecentlyStarted_WithOpenHardwareMonitor.sql",
+        "SQL/DataModification/InsertDataifnotExist.sql",
+        "SQL/DataModification/SET_Object_OperatingSystem_LastBoot-Time-Type.sql",
+        "SQL/DataModification/UpdateDataTableTemplate.sql",
+        "SQL/DataModification/UpdateDataTableTemplateWithChangeLog.sql",
+        "SQL/DataModification/UpdateInventoryTable.sql",
+        "SQL/ProcessCoordinator/GetProcessCoordinatorSleepTime.sql",
+        "SQL/ProcessCoordinator/LastExecution.sql",
+        "SQL/ProcessCoordinator/LastInstancePID.sql",
+        "SQL/RecentlyStartedProcess/ScriptsToRunOnRecentlyStartedDevices.sql",
+        "SQL/RecentlyStartedProcess/UpdateRecentlyStartedFlag.sql",
+        "SQL/ValueUpdate/UpdateIsActive.sql",
+        "SQL/ValueUpdate/UpdateIsOpenHardwareMonitorDeployed.sql"
+    ]
 }
